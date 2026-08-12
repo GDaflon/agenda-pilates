@@ -3,11 +3,10 @@
 -- Rode DEPOIS do schema.sql. Ajuste os nomes das unidades!
 -- ============================================================
 
--- 3 unidades (troque os nomes pelos reais)
+-- unidades do Natty Estúdio Pilates
 insert into unidade (nome, capacidade_padrao) values
   ('Centro', 5),
-  ('Jardins', 5),
-  ('Vila Nova', 5);
+  ('Jardim', 5);
 
 -- Grade padrão: seg–sex 06–11h e 15–19h, sáb 08–11h, para todas as unidades.
 -- (Depois é só ajustar na tela Config do app, que é admin-only.)

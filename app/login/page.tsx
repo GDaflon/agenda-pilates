@@ -27,7 +27,10 @@ export default function LoginPage() {
     e?.preventDefault();
     setErro(null);
     setCarregando(true);
-    const msg = await getRepo().login(email.trim(), senha);
+    // login por usuário: sem "@" vira usuario@agenda.local
+    const digitado = email.trim();
+    const emailFinal = digitado.includes('@') ? digitado : `${digitado}@agenda.local`;
+    const msg = await getRepo().login(emailFinal, senha);
     if (msg) {
       setErro(msg);
       setCarregando(false);
@@ -40,9 +43,9 @@ export default function LoginPage() {
     <div className="login-wrap">
       <div className="login-card">
         <h1>
-          Agenda <span>Pilates</span>
+          <span>Natty</span> Pilates
         </h1>
-        <p className="login-sub">Agenda digital das clínicas — equipe</p>
+        <p className="login-sub">Natty Estúdio Pilates — agenda da equipe</p>
 
         {demo ? (
           <>
@@ -56,12 +59,13 @@ export default function LoginPage() {
           </>
         ) : (
           <form onSubmit={entrar}>
-            <span className="field-label">E-mail</span>
+            <span className="field-label">Usuário ou e-mail</span>
             <input
               className="field"
-              type="email"
+              type="text"
               value={email}
-              autoComplete="email"
+              autoComplete="username"
+              autoCapitalize="none"
               onChange={(e) => setEmail(e.target.value)}
             />
             <span className="field-label">Senha</span>

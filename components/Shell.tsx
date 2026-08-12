@@ -23,7 +23,7 @@ export function ShellHeader() {
     <header className="app-header">
       <div className="app-title">
         <h1>
-          Agenda <span>Pilates</span>
+          <span>Natty</span> Pilates
         </h1>
         <div className="header-right">
           {demo ? (

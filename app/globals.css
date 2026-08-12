@@ -1,18 +1,20 @@
 @import 'tailwindcss';
 
 :root {
-  --bg: #f4f4ef;
+  /* Natty Estúdio Pilates — ver branding/BRAND.md */
+  --bg: #f8f2f5;
   --card: #ffffff;
-  --ink: #1d2823;
-  --muted: #68766f;
-  --line: #e4e6df;
-  --brand: #1f6e5e;
-  --brand-ink: #14493e;
-  --brand-soft: #e3efea;
-  --blue: #2563eb;
-  --blue-soft: #e4edff;
-  --purple: #7c3aed;
-  --purple-soft: #f0e9fe;
+  --ink: #3a3138;
+  --muted: #8b7a84;
+  --line: #eee0e8;
+  --brand: #c0267e;
+  --brand-ink: #97195f;
+  --brand-soft: #f8e3ef;
+  --teal: #2ba6af;
+  --teal-ink: #1d7680;
+  --teal-soft: #e0f3f4;
+  --purple: #8b4b9c;
+  --purple-soft: #f1e7f6;
   --orange: #ea580c;
   --orange-soft: #ffeadd;
   --green: #15803d;
@@ -22,7 +24,7 @@
   --amber: #b45309;
   --amber-soft: #fef3df;
   --radius: 16px;
-  --shadow: 0 1px 2px rgba(29, 40, 35, 0.06), 0 8px 24px rgba(29, 40, 35, 0.05);
+  --shadow: 0 1px 2px rgba(58, 49, 56, 0.06), 0 8px 24px rgba(58, 49, 56, 0.05);
 }
 
 * {
@@ -36,7 +38,7 @@ html {
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
     sans-serif;
-  background: #dddDD4;
+  background: #e9dce3;
   color: var(--ink);
   line-height: 1.45;
 }
@@ -115,7 +117,7 @@ body {
   background: var(--brand);
   border-color: var(--brand);
   color: #fff;
-  box-shadow: 0 4px 12px rgba(31, 110, 94, 0.25);
+  box-shadow: 0 4px 12px rgba(192, 38, 126, 0.25);
 }
 .days {
   display: flex;
@@ -267,8 +269,8 @@ body {
   flex: none;
 }
 .badge.mensalista {
-  background: var(--blue-soft);
-  color: var(--blue);
+  background: var(--teal-soft);
+  color: var(--teal-ink);
 }
 .badge.wellhub {
   background: var(--purple-soft);
@@ -294,7 +296,7 @@ body {
   font-size: 0.66rem;
   font-weight: 700;
   color: var(--muted);
-  background: #edeee8;
+  background: #f3e7ee;
   border-radius: 6px;
   padding: 2px 6px;
   flex: none;
@@ -304,7 +306,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  border: 1.5px dashed #bfd5cc;
+  border: 1.5px dashed #ecc5dc;
   color: var(--brand);
   background: transparent;
   border-radius: 12px;
@@ -442,9 +444,9 @@ body {
   text-overflow: ellipsis;
 }
 .mcal-item.fx {
-  background: var(--blue-soft);
-  border-color: #c9d9f7;
-  color: #1e40af;
+  background: var(--teal-soft);
+  border-color: #bfe2e5;
+  color: var(--teal-ink);
 }
 .mcal-mais {
   font-size: 0.56rem;
@@ -471,8 +473,8 @@ body {
   vertical-align: -1px;
 }
 .mcal-legend .lg.fx {
-  background: var(--blue-soft);
-  border-color: #c9d9f7;
+  background: var(--teal-soft);
+  border-color: #bfe2e5;
 }
 .mes-slot-row {
   padding: 9px 0;
@@ -503,8 +505,8 @@ body {
   padding: 3px 8px;
 }
 .mini-chip.fx {
-  background: var(--blue-soft);
-  border-color: #c9d9f7;
+  background: var(--teal-soft);
+  border-color: #bfe2e5;
 }
 .mini-chip.st-checkin {
   background: var(--green-soft);
@@ -520,8 +522,8 @@ body {
   font-style: normal;
   font-size: 0.62rem;
   font-weight: 700;
-  color: #1e40af;
-  opacity: 0.75;
+  color: var(--teal-ink);
+  opacity: 0.85;
 }
 
 /* ---------- botões / formulários ---------- */
@@ -540,7 +542,7 @@ body {
   padding: 14px;
   border-radius: 14px;
   margin-top: 12px;
-  box-shadow: 0 6px 16px rgba(31, 110, 94, 0.28);
+  box-shadow: 0 6px 16px rgba(192, 38, 126, 0.28);
   transition: 0.12s;
 }
 .btn:active {
@@ -926,7 +928,7 @@ body {
   pointer-events: auto;
 }
 .toast-act {
-  color: #8fd6c2;
+  color: #f2a7cf;
   font-weight: 800;
   cursor: pointer;
   white-space: nowrap;
@@ -969,6 +971,60 @@ body {
   background: var(--brand-soft);
   border-color: var(--brand);
   color: var(--brand-ink);
+}
+.unidade-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin-bottom: 7px;
+}
+.unidade-row .nm {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+.unidade-confirm {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.mini-danger {
+  border: none;
+  background: var(--red);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.mini-plain {
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 2px;
+}
+.mini-plain.danger {
+  color: var(--red);
+}
+.mini-plain:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.unidade-nova {
+  display: flex;
+  gap: 8px;
+}
+.unidade-nova .cap {
+  width: 76px;
+  flex: none;
 }
 
 /* ---------- login ---------- */
@@ -1016,7 +1072,7 @@ body {
 /* ---------- skeleton ---------- */
 .skel {
   border-radius: var(--radius);
-  background: linear-gradient(90deg, #ecede6 25%, #f6f6f1 50%, #ecede6 75%);
+  background: linear-gradient(90deg, #f0e3ea 25%, #f9f2f6 50%, #f0e3ea 75%);
   background-size: 200% 100%;
   animation: skel 1.2s infinite linear;
   height: 92px;

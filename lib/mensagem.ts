@@ -21,12 +21,12 @@ export function buildMensagem(unidadeNome: string, off: number, slots: SlotDia[]
     const agora = agoraHora();
     const encerrou = off === 0 && slots.length > 0 && slots.every((s) => s.hora < agora);
     if (encerrou) {
-      return `🧘‍♀️ *Pilates ${unidadeNome}*\n\nEncerramos as turmas de hoje! 🙏\nAmanhã cedo mando os horários com vaga.`;
+      return `🧘‍♀️ *Natty Pilates ${unidadeNome}*\n\nEncerramos as turmas de hoje! 🙏\nAmanhã cedo mando os horários com vaga.`;
     }
-    return `🧘‍♀️ *Pilates ${unidadeNome}*\n\nTurmas de ${nomeDia(off)} completas! 🙌\nAviso aqui assim que abrir vaga.`;
+    return `🧘‍♀️ *Natty Pilates ${unidadeNome}*\n\nTurmas de ${nomeDia(off)} completas! 🙌\nAviso aqui assim que abrir vaga.`;
   }
   return (
-    `🧘‍♀️ *Pilates ${unidadeNome} — vagas de ${nomeDia(off)}*\n\n` +
+    `🧘‍♀️ *Natty Pilates ${unidadeNome} — vagas de ${nomeDia(off)}*\n\n` +
     ls.map((x) => `• ${horaFmt(x.h)} — ${x.vagas} ${x.vagas === 1 ? 'vaga' : 'vagas'}`).join('\n') +
     `\n\n📲 Responda aqui com o horário para reservar.` +
     `\n✅ Check-in no app (Wellhub/TotalPass) obrigatório na chegada.` +

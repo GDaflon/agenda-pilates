@@ -3,13 +3,13 @@ import './globals.css';
 import SWRegister from '@/components/SWRegister';
 
 export const metadata: Metadata = {
-  title: 'Agenda Pilates',
-  description: 'Agenda digital das clínicas de pilates — marcações, vagas e presença.',
+  title: 'Natty Estúdio Pilates',
+  description: 'Natty Estúdio Pilates — marcações, vagas e presença.',
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Agenda Pilates',
+    title: 'Natty Pilates',
   },
   icons: {
     icon: '/icon-192.png',
@@ -21,7 +21,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
-  themeColor: '#1F6E5E',
+  themeColor: '#C0267E',
 };
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {

@@ -1,11 +1,11 @@
 {
-  "name": "Agenda Pilates",
-  "short_name": "Agenda Pilates",
-  "description": "Agenda digital das clínicas de pilates — marcações, vagas e presença.",
+  "name": "Natty Estúdio Pilates",
+  "short_name": "Natty Pilates",
+  "description": "Natty Estúdio Pilates — marcações, vagas e presença.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F4F4EF",
-  "theme_color": "#1F6E5E",
+  "background_color": "#F8F2F5",
+  "theme_color": "#C0267E",
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }

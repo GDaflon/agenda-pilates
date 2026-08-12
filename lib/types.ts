@@ -79,6 +79,11 @@ export const TIPO_LABEL: Record<TipoAluno, string> = {
   totalpass: 'TotalPass',
 };
 
+export const PAPEL_LABEL: Record<Papel, string> = {
+  admin: 'Dono(a)',
+  professora: 'Professor(a)',
+};
+
 export const TIPO_LETRA: Record<TipoAluno, string> = {
   mensalista: 'M',
   wellhub: 'W',

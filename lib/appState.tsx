@@ -107,6 +107,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return unsub;
   }, [repo, pronto, bump]);
 
+  // unidade selecionada foi excluída → cai na primeira disponível
+  useEffect(() => {
+    if (!pronto || !unidades.length) return;
+    if (!unidades.some((u) => u.id === unidadeId)) {
+      setUnidadeIdState(unidades[0].id);
+    }
+  }, [pronto, unidades, unidadeId]);
+
   const setUnidadeId = useCallback((id: string) => {
     setUnidadeIdState(id);
     try {

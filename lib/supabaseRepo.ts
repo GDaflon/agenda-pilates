@@ -420,6 +420,21 @@ export class SupabaseRepo implements AgendaRepo {
     if (error) throw error;
   }
 
+  async criarUnidade(p: { nome: string; capacidade: number }): Promise<Unidade> {
+    const { data, error } = await sb()
+      .from('unidade')
+      .insert({ nome: p.nome, capacidade_padrao: p.capacidade })
+      .select('id,nome,capacidade_padrao')
+      .single();
+    if (error) throw error;
+    return data as Unidade;
+  }
+
+  async excluirUnidade(id: string): Promise<void> {
+    const { error } = await sb().from('unidade').update({ ativo: false }).eq('id', id);
+    if (error) throw error;
+  }
+
   onReservasChange(cb: () => void): () => void {
     const channel = sb()
       .channel('reservas-realtime')

@@ -56,8 +56,7 @@ function gradeHoras(wd: number): number[] {
 class DemoState {
   unidades: Unidade[] = [
     { id: 'u-centro', nome: 'Centro', capacidade_padrao: 5 },
-    { id: 'u-jardins', nome: 'Jardins', capacidade_padrao: 5 },
-    { id: 'u-vila', nome: 'Vila Nova', capacidade_padrao: 5 },
+    { id: 'u-jardim', nome: 'Jardim', capacidade_padrao: 5 },
   ];
   alunos: Aluno[] = [];
   grade = new Map<string, GradeItem[]>(); // unidadeId -> itens
@@ -543,6 +542,23 @@ export class DemoRepo implements AgendaRepo {
     await espera(40);
     const atual = st().unidades.find((x) => x.id === u.id);
     if (atual) Object.assign(atual, u);
+    this.notify();
+  }
+
+  async criarUnidade(p: { nome: string; capacidade: number }): Promise<Unidade> {
+    await espera(40);
+    const s = st();
+    const u: Unidade = { id: s.novoId('u'), nome: p.nome, capacidade_padrao: p.capacidade };
+    s.unidades.push(u);
+    s.grade.set(u.id, []);
+    this.notify();
+    return u;
+  }
+
+  async excluirUnidade(id: string): Promise<void> {
+    await espera(40);
+    const s = st();
+    s.unidades = s.unidades.filter((u) => u.id !== id);
     this.notify();
   }
 

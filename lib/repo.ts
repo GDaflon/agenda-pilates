@@ -48,6 +48,9 @@ export interface AgendaRepo {
   grade(unidadeId: string): Promise<GradeItem[]>;
   toggleGrade(unidadeId: string, dia: number, hora: number, ativo: boolean): Promise<void>;
   salvarUnidade(u: Unidade): Promise<void>;
+  criarUnidade(p: { nome: string; capacidade: number }): Promise<Unidade>;
+  /** Desativa a unidade (some das listas; histórico preservado). */
+  excluirUnidade(id: string): Promise<void>;
 
   // tempo real
   onReservasChange(cb: () => void): () => void;
