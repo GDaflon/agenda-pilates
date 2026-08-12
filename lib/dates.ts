@@ -1,5 +1,6 @@
 export const DIAS_ABR = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 export const DIAS_LONGO = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+export const MESES_LONGO = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
 /** Data local com offset de dias a partir de hoje (meio-dia para evitar bordas de fuso). */
 export function dateFor(off: number): Date {
@@ -51,4 +52,33 @@ export function horaSql(h: number): string {
 
 export function agoraHora(): number {
   return new Date().getHours();
+}
+
+/** mes 1-12 */
+export function diasNoMes(ano: number, mes: number): number {
+  return new Date(ano, mes, 0).getDate();
+}
+
+/** mes 1-12 */
+export function dataDoMes(ano: number, mes: number, dia: number): string {
+  return ano + '-' + String(mes).padStart(2, '0') + '-' + String(dia).padStart(2, '0');
+}
+
+export function diaSemanaDe(dataISO: string): number {
+  return new Date(dataISO + 'T12:00:00').getDay();
+}
+
+/** primeira data >= baseISO que cai no dia-da-semana pedido */
+export function proximaData(baseISO: string, diaSemana: number): string {
+  const d = new Date(baseISO + 'T12:00:00');
+  d.setDate(d.getDate() + ((diaSemana - d.getDay() + 7) % 7));
+  return iso(d);
+}
+
+/** offset em dias de hoje até dataISO (negativo = passado) */
+export function offDe(dataISO: string): number {
+  const alvo = new Date(dataISO + 'T12:00:00');
+  const hoje = new Date();
+  hoje.setHours(12, 0, 0, 0);
+  return Math.round((alvo.getTime() - hoje.getTime()) / 86400000);
 }

@@ -1,5 +1,6 @@
 import {
   Aluno,
+  DiaMes,
   GradeItem,
   ProximaAula,
   Reserva,
@@ -18,6 +19,8 @@ export interface AgendaRepo {
   // agenda
   listUnidades(): Promise<Unidade[]>;
   agendaDia(unidadeId: string, dataISO: string): Promise<SlotDia[]>;
+  /** Visão do mês: reservas existentes + fixos projetados nos dias ainda não abertos. */
+  resumoMes(unidadeId: string, ano: number, mes: number): Promise<DiaMes[]>; // mes 1-12
   marcar(p: {
     unidadeId: string;
     dataISO: string;

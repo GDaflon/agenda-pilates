@@ -7,6 +7,7 @@ import { dateFor, ddmm, labelDia, DIAS_ABR } from '@/lib/dates';
 
 const ABAS = [
   { href: '/', ico: '📅', lbl: 'Agenda' },
+  { href: '/mes', ico: '🗓️', lbl: 'Mês' },
   { href: '/vagas', ico: '📣', lbl: 'Vagas' },
   { href: '/alunos', ico: '👥', lbl: 'Alunos' },
   { href: '/config', ico: '⚙️', lbl: 'Config' },

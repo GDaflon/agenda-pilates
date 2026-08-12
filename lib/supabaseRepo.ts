@@ -2,7 +2,9 @@ import { SupabaseClient, createClient } from '@supabase/supabase-js';
 import type { AgendaRepo, ResultadoMarcacao } from './repo';
 import {
   Aluno,
+  DiaMes,
   GradeItem,
+  ItemMes,
   ProximaAula,
   Reserva,
   Sessao,
@@ -11,7 +13,7 @@ import {
   TipoAluno,
   Unidade,
 } from './types';
-import { horaNum, horaSql } from './dates';
+import { dataDoMes, diaSemanaDe, diasNoMes, horaNum, horaSql } from './dates';
 
 /* ============================================================
    Repositório Supabase — produção.
@@ -162,6 +164,127 @@ export class SupabaseRepo implements AgendaRepo {
         ausencias: ausPorHora.get(h) ?? [],
       };
     }) as SlotDia[]);
+  }
+
+  async resumoMes(unidadeId: string, ano: number, mes: number): Promise<DiaMes[]> {
+    const nDias = diasNoMes(ano, mes);
+    const ini = dataDoMes(ano, mes, 1);
+    const fim = dataDoMes(ano, mes, nDias);
+
+    const [uQ, gQ, rQ, vQ, aQ] = await Promise.all([
+      sb().from('unidade').select('capacidade_padrao').eq('id', unidadeId).single(),
+      sb()
+        .from('grade_horario')
+        .select('dia_semana,hora,capacidade')
+        .eq('unidade_id', unidadeId)
+        .eq('ativo', true),
+      sb()
+        .from('reserva')
+        .select('data,hora,status,origem,tipo_no_dia,aluno_id,aluno:aluno_id(nome)')
+        .eq('unidade_id', unidadeId)
+        .gte('data', ini)
+        .lte('data', fim),
+      sb()
+        .from('vinculo_fixo')
+        .select(
+          'id,inicio,fim,aluno:aluno_id(id,nome,tipo,ativo),grade:grade_horario_id(dia_semana,hora,unidade_id,ativo)'
+        )
+        .lte('inicio', fim)
+        .or(`fim.is.null,fim.gte.${ini}`),
+      sb().from('ausencia_fixo').select('vinculo_fixo_id,data').gte('data', ini).lte('data', fim),
+    ]);
+    const erro = uQ.error ?? gQ.error ?? rQ.error ?? vQ.error ?? aQ.error;
+    if (erro) throw erro;
+
+    const capPadrao = (uQ.data as { capacidade_padrao: number }).capacidade_padrao;
+
+    type GRow = { dia_semana: number; hora: string; capacidade: number | null };
+    const capPorDow = new Map<number, number>();
+    for (const g of ((gQ.data as unknown as GRow[]) ?? [])) {
+      capPorDow.set(g.dia_semana, (capPorDow.get(g.dia_semana) ?? 0) + (g.capacidade ?? capPadrao));
+    }
+
+    type RRow = {
+      data: string;
+      hora: string;
+      status: StatusReserva;
+      origem: Reserva['origem'];
+      tipo_no_dia: TipoAluno;
+      aluno_id: string;
+      aluno: { nome: string } | { nome: string }[] | null;
+    };
+    // gerar_dia não recria reserva que já existe (mesmo cancelada) → mesma regra na projeção
+    const jaExiste = new Set<string>();
+    const porDia = new Map<string, ItemMes[]>();
+    for (const r of ((rQ.data as unknown as RRow[]) ?? [])) {
+      const h = horaNum(r.hora);
+      jaExiste.add(`${r.data}|${h}|${r.aluno_id}`);
+      if (r.status === 'cancelado') continue;
+      const nome = um(r.aluno)?.nome;
+      if (!nome) continue;
+      const lista = porDia.get(r.data) ?? [];
+      lista.push({
+        hora: h,
+        nome,
+        tipo: r.tipo_no_dia,
+        fixo: r.origem === 'fixo',
+        previsto: false,
+        status: r.status,
+      });
+      porDia.set(r.data, lista);
+    }
+
+    type VRow = {
+      id: string;
+      inicio: string;
+      fim: string | null;
+      aluno: { id: string; nome: string; tipo: TipoAluno; ativo: boolean } | { id: string; nome: string; tipo: TipoAluno; ativo: boolean }[] | null;
+      grade: { dia_semana: number; hora: string; unidade_id: string; ativo: boolean } | { dia_semana: number; hora: string; unidade_id: string; ativo: boolean }[] | null;
+    };
+    const vinculos = (((vQ.data as unknown as VRow[]) ?? [])
+      .map((v) => ({ id: v.id, inicio: v.inicio, fim: v.fim, aluno: um(v.aluno), grade: um(v.grade) }))
+      .filter(
+        (v) =>
+          v.aluno?.ativo && v.grade?.ativo && v.grade.unidade_id === unidadeId
+      ));
+
+    type ARow = { vinculo_fixo_id: string; data: string };
+    const ausentes = new Set(
+      (((aQ.data as unknown as ARow[]) ?? []).map((a) => `${a.vinculo_fixo_id}|${a.data}`))
+    );
+
+    const dias: DiaMes[] = [];
+    for (let dia = 1; dia <= nDias; dia++) {
+      const data = dataDoMes(ano, mes, dia);
+      const dow = diaSemanaDe(data);
+      const itens = porDia.get(data) ?? [];
+      for (const v of vinculos) {
+        if (v.grade!.dia_semana !== dow) continue;
+        if (v.inicio > data || (v.fim && v.fim < data)) continue;
+        if (ausentes.has(`${v.id}|${data}`)) continue;
+        const h = horaNum(v.grade!.hora);
+        if (jaExiste.has(`${data}|${h}|${v.aluno!.id}`)) continue;
+        itens.push({
+          hora: h,
+          nome: v.aluno!.nome,
+          tipo: v.aluno!.tipo,
+          fixo: true,
+          previsto: true,
+          status: 'reservado',
+        });
+      }
+      itens.sort((a, b) =>
+        a.hora !== b.hora
+          ? a.hora - b.hora
+          : a.fixo !== b.fixo
+            ? a.fixo
+              ? -1
+              : 1
+            : a.nome.localeCompare(b.nome, 'pt')
+      );
+      dias.push({ data, capacidade: capPorDow.get(dow) ?? 0, itens });
+    }
+    return dias;
   }
 
   async marcar(p: {

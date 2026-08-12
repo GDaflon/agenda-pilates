@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useApp } from '@/lib/appState';
-import { Aluno, TIPO_LABEL, TipoAluno } from '@/lib/types';
-import { horaFmt, nomeDia } from '@/lib/dates';
+import { Aluno, GradeItem, TIPO_LABEL, TipoAluno } from '@/lib/types';
+import { DIAS_ABR, diaSemanaDe, horaFmt, nomeDia, proximaData } from '@/lib/dates';
 import { norm, primeiroNome, titleCase } from '@/lib/text';
 import Badge from './Badge';
 import BottomSheet from './BottomSheet';
@@ -27,6 +27,9 @@ export default function MarcarSheet({
   const [tipoNovo, setTipoNovo] = useState<TipoAluno>('wellhub');
   const [fixo, setFixo] = useState(false);
   const [salvando, setSalvando] = useState(false);
+  const [gradeItens, setGradeItens] = useState<GradeItem[]>([]);
+  const [extras, setExtras] = useState<{ dia: number; hora: number }[]>([]);
+  const [addDia, setAddDia] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // reset ao abrir
@@ -39,9 +42,20 @@ export default function MarcarSheet({
       setTipoNovo('wellhub');
       setFixo(false);
       setSalvando(false);
+      setExtras([]);
+      setAddDia(null);
       setTimeout(() => inputRef.current?.focus(), 260);
     }
   }, [hora]);
+
+  // grade da unidade (para escolher outros dias do fixo)
+  useEffect(() => {
+    if (hora == null || !unidade) return;
+    repo
+      .grade(unidade.id)
+      .then((g) => setGradeItens(g.filter((x) => x.ativo)))
+      .catch(() => setGradeItens([]));
+  }, [hora, unidade, repo]);
 
   // busca com debounce
   useEffect(() => {
@@ -61,6 +75,21 @@ export default function MarcarSheet({
   const mostraFixo = tipoEscolhido === 'mensalista';
   const podeConfirmar = !!sel || (novo && buscaLimpa.length >= 2);
 
+  const diaBase = diaSemanaDe(dataISO);
+  const diasComAula = [...new Set(gradeItens.map((g) => g.dia_semana))].sort();
+  const horasDoDia = (dia: number) =>
+    gradeItens
+      .filter((g) => g.dia_semana === dia)
+      .map((g) => g.hora)
+      .sort((a, b) => a - b);
+
+  function addExtra(dia: number, h: number) {
+    if (dia === diaBase && h === hora) return; // já é o horário base
+    if (extras.some((p) => p.dia === dia && p.hora === h)) return;
+    setExtras([...extras, { dia, hora: h }]);
+    setAddDia(null);
+  }
+
   async function confirmar() {
     if (hora == null || !unidade || !podeConfirmar || salvando) return;
     setSalvando(true);
@@ -71,24 +100,47 @@ export default function MarcarSheet({
         aluno = await repo.criarAluno({ nome: titleCase(buscaLimpa), tipo: tipoNovo });
         cadastrei = true;
       }
+      const ehFixo = mostraFixo && fixo;
       const res = await repo.marcar({
         unidadeId: unidade.id,
         dataISO,
         hora,
         alunoId: aluno.id,
-        fixo: mostraFixo && fixo,
+        fixo: ehFixo,
       });
       if (!res.ok) {
         toast(res.erro);
         setSalvando(false);
         return;
       }
+
+      // demais dias do fixo: cada um vira um vínculo a partir da próxima ocorrência
+      const falhas: string[] = [];
+      let criados = 0;
+      if (ehFixo) {
+        for (const p of extras) {
+          const r2 = await repo.marcar({
+            unidadeId: unidade.id,
+            dataISO: proximaData(dataISO, p.dia),
+            hora: p.hora,
+            alunoId: aluno.id,
+            fixo: true,
+          });
+          if (r2.ok) criados++;
+          else falhas.push(`${DIAS_ABR[p.dia]} ${horaFmt(p.hora)}: ${r2.erro}`);
+        }
+      }
+
       bump();
-      toast(
-        `${primeiroNome(aluno.nome)} ✓ ${horaFmt(hora)}` +
-          (mostraFixo && fixo ? ' · fixo semanal' : '') +
-          (cadastrei ? ' · aluno cadastrado' : '')
-      );
+      if (falhas.length) {
+        toast(`${primeiroNome(aluno.nome)} ✓, mas não deu em ${falhas.join(' · ')}`);
+      } else {
+        toast(
+          `${primeiroNome(aluno.nome)} ✓ ${horaFmt(hora)}` +
+            (ehFixo ? ` · fixo em ${criados + 1} ${criados ? 'horários' : 'horário'}/semana` : '') +
+            (cadastrei ? ' · aluno cadastrado' : '')
+        );
+      }
       onFechar();
     } catch (e) {
       toast('Erro: ' + (e as Error).message);
@@ -183,6 +235,64 @@ export default function MarcarSheet({
           <input type="checkbox" checked={fixo} onChange={(e) => setFixo(e.target.checked)} />
           Tornar horário fixo semanal (toda semana neste horário)
         </label>
+      )}
+
+      {mostraFixo && fixo && (
+        <div className="fx-extras">
+          <span className="field-label">
+            Fixo em: {DIAS_ABR[diaBase]} {hora != null ? horaFmt(hora) : ''}
+            {extras.map((p) => ` · ${DIAS_ABR[p.dia]} ${horaFmt(p.hora)}`).join('')}
+          </span>
+
+          {extras.map((p, i) => (
+            <div key={i} className="fx-extra-row">
+              <span className="fx-extra-lbl">
+                {DIAS_ABR[p.dia]} às {horaFmt(p.hora)}
+              </span>
+              <button
+                className="fx-extra-del"
+                onClick={() => setExtras(extras.filter((_, j) => j !== i))}
+                aria-label="Remover dia"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+
+          {addDia == null ? (
+            <div className="fx-day-pick">
+              {diasComAula.map((d) => (
+                <button key={d} className="f-chip" onClick={() => setAddDia(d)}>
+                  ＋ {DIAS_ABR[d]}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <>
+              <span className="field-label">
+                Qual horário de {DIAS_ABR[addDia]}?{' '}
+                <button className="fx-cancel" onClick={() => setAddDia(null)}>
+                  cancelar
+                </button>
+              </span>
+              <div className="fx-day-pick">
+                {horasDoDia(addDia).map((h) => (
+                  <button
+                    key={h}
+                    className="f-chip"
+                    disabled={
+                      (addDia === diaBase && h === hora) ||
+                      extras.some((p) => p.dia === addDia && p.hora === h)
+                    }
+                    onClick={() => addExtra(addDia, h)}
+                  >
+                    {horaFmt(h)}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       )}
 
       <button className="btn" disabled={!podeConfirmar || salvando} onClick={confirmar}>

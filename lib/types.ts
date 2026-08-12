@@ -43,6 +43,23 @@ export interface GradeItem {
   ativo: boolean;
 }
 
+/** uma pessoa agendada em um dia do mês (real ou fixo previsto) */
+export interface ItemMes {
+  hora: number;
+  nome: string;
+  tipo: TipoAluno;
+  fixo: boolean;
+  /** true = vem do vínculo fixo, dia ainda não aberto na agenda */
+  previsto: boolean;
+  status: StatusReserva;
+}
+
+export interface DiaMes {
+  data: string; // YYYY-MM-DD
+  capacidade: number; // soma das turmas do dia
+  itens: ItemMes[];
+}
+
 export interface ProximaAula {
   data: string;
   hora: number;

@@ -1,7 +1,9 @@
 import type { AgendaRepo, ResultadoMarcacao } from './repo';
 import {
   Aluno,
+  DiaMes,
   GradeItem,
+  ItemMes,
   ProximaAula,
   Reserva,
   Sessao,
@@ -10,7 +12,7 @@ import {
   TipoAluno,
   Unidade,
 } from './types';
-import { agoraHora, dateFor, iso } from './dates';
+import { agoraHora, dataDoMes, dateFor, diaSemanaDe, diasNoMes, iso } from './dates';
 import { norm } from './text';
 
 /* ============================================================
@@ -313,6 +315,61 @@ export class DemoRepo implements AgendaRepo {
           .map((r) => s.aluno(r.alunoId).nome);
         return { hora: g.hora, capacidade: g.capacidade ?? cap, reservas: ativas, ausencias };
       });
+  }
+
+  async resumoMes(unidadeId: string, ano: number, mes: number): Promise<DiaMes[]> {
+    await espera();
+    const s = st();
+    const capPadrao = s.unidades.find((u) => u.id === unidadeId)?.capacidade_padrao ?? 5;
+    const gradeAtiva = (s.grade.get(unidadeId) ?? []).filter((g) => g.ativo);
+    const nDias = diasNoMes(ano, mes);
+
+    const dias: DiaMes[] = [];
+    for (let dia = 1; dia <= nDias; dia++) {
+      const data = dataDoMes(ano, mes, dia);
+      const dow = diaSemanaDe(data);
+      const slots = gradeAtiva.filter((g) => g.dia_semana === dow);
+      const capacidade = slots.reduce((sum, g) => sum + (g.capacidade ?? capPadrao), 0);
+
+      const doDia = s.reservas.filter((r) => r.unidade_id === unidadeId && r.data === data);
+      const itens: ItemMes[] = doDia
+        .filter((r) => r.status !== 'cancelado')
+        .map((r) => ({
+          hora: r.hora,
+          nome: s.aluno(r.alunoId).nome,
+          tipo: r.tipo_no_dia,
+          fixo: r.origem === 'fixo',
+          previsto: false,
+          status: r.status,
+        }));
+
+      // fixos projetados nos dias ainda não materializados (mesma regra do materializarDia)
+      for (const g of slots) {
+        for (const alunoId of s.fixos.get(`${unidadeId}|${dow}|${g.hora}`) ?? []) {
+          if (doDia.some((r) => r.hora === g.hora && r.alunoId === alunoId)) continue;
+          const a = s.aluno(alunoId);
+          itens.push({
+            hora: g.hora,
+            nome: a.nome,
+            tipo: a.tipo,
+            fixo: true,
+            previsto: true,
+            status: 'reservado',
+          });
+        }
+      }
+      itens.sort((a, b) =>
+        a.hora !== b.hora
+          ? a.hora - b.hora
+          : a.fixo !== b.fixo
+            ? a.fixo
+              ? -1
+              : 1
+            : a.nome.localeCompare(b.nome, 'pt')
+      );
+      dias.push({ data, capacidade, itens });
+    }
+    return dias;
   }
 
   async marcar(p: {
