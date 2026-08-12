@@ -1,0 +1,336 @@
+import { SupabaseClient, createClient } from '@supabase/supabase-js';
+import type { AgendaRepo, ResultadoMarcacao } from './repo';
+import {
+  Aluno,
+  GradeItem,
+  ProximaAula,
+  Reserva,
+  Sessao,
+  SlotDia,
+  StatusReserva,
+  TipoAluno,
+  Unidade,
+} from './types';
+import { horaNum, horaSql } from './dates';
+
+/* ============================================================
+   Repositório Supabase — produção.
+   Requer NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY.
+   Toda a autorização de verdade acontece nas policies (RLS).
+   ============================================================ */
+
+let client: SupabaseClient | null = null;
+
+function sb(): SupabaseClient {
+  if (!client) {
+    client = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+  }
+  return client;
+}
+
+/* linhas cruas vindas do banco */
+interface AlunoRow {
+  id: string;
+  nome: string;
+  telefone: string | null;
+  tipo: TipoAluno;
+  observacoes: string | null;
+  ativo: boolean;
+}
+
+interface ReservaRow {
+  id: string;
+  unidade_id: string;
+  data: string;
+  hora: string;
+  tipo_no_dia: TipoAluno;
+  origem: Reserva['origem'];
+  status: StatusReserva;
+  aluno: AlunoRow | AlunoRow[] | null;
+}
+
+function um<T>(v: T | T[] | null): T | null {
+  if (Array.isArray(v)) return v[0] ?? null;
+  return v;
+}
+
+function traduzErro(msg: string): string {
+  if (msg.includes('sem_vaga')) return 'Turma completa — a vaga acabou de ser preenchida.';
+  if (msg.includes('ja_fixo')) return 'Este aluno já tem horário fixo nessa turma.';
+  if (msg.includes('horario_inexistente')) return 'Esse horário não existe na grade da unidade.';
+  if (msg.includes('reserva_unica') || msg.includes('duplicate key'))
+    return 'Aluno já está nesse horário.';
+  return msg;
+}
+
+export class SupabaseRepo implements AgendaRepo {
+  readonly mode = 'supabase' as const;
+
+  async listUnidades(): Promise<Unidade[]> {
+    const { data, error } = await sb()
+      .from('unidade')
+      .select('id,nome,capacidade_padrao')
+      .eq('ativo', true)
+      .order('nome');
+    if (error) throw error;
+    return data ?? [];
+  }
+
+  async agendaDia(unidadeId: string, dataISO: string): Promise<SlotDia[]> {
+    // 1) materializa os fixos do dia (idempotente)
+    await sb().rpc('gerar_dia', { p_unidade: unidadeId, p_data: dataISO });
+
+    // 2) capacidade/estrutura por horário
+    const { data: vagas, error: e1 } = await sb().rpc('vagas_do_dia', {
+      p_unidade: unidadeId,
+      p_data: dataISO,
+    });
+    if (e1) throw e1;
+
+    // 3) reservas do dia com aluno embutido
+    const { data: rs, error: e2 } = await sb()
+      .from('reserva')
+      .select(
+        'id,unidade_id,data,hora,tipo_no_dia,origem,status,aluno:aluno_id(id,nome,telefone,tipo,observacoes,ativo)'
+      )
+      .eq('unidade_id', unidadeId)
+      .eq('data', dataISO);
+    if (e2) throw e2;
+
+    // 4) ausências avisadas do dia (fixos que liberaram vaga)
+    const { data: aus, error: e3 } = await sb()
+      .from('ausencia_fixo')
+      .select(
+        'data, vinculo:vinculo_fixo_id(aluno:aluno_id(nome), grade:grade_horario_id(hora, unidade_id))'
+      )
+      .eq('data', dataISO);
+    if (e3) throw e3;
+
+    const reservas = (rs as unknown as ReservaRow[]) ?? [];
+    const porHora = new Map<number, Reserva[]>();
+    for (const r of reservas) {
+      if (r.status === 'cancelado') continue;
+      const aluno = um(r.aluno);
+      if (!aluno) continue;
+      const h = horaNum(r.hora);
+      const lista = porHora.get(h) ?? [];
+      lista.push({
+        id: r.id,
+        unidade_id: r.unidade_id,
+        data: r.data,
+        hora: h,
+        aluno,
+        tipo_no_dia: r.tipo_no_dia,
+        origem: r.origem,
+        status: r.status,
+      });
+      porHora.set(h, lista);
+    }
+
+    const ausPorHora = new Map<number, string[]>();
+    type AusRow = {
+      vinculo: {
+        aluno: { nome: string } | { nome: string }[] | null;
+        grade: { hora: string; unidade_id: string } | { hora: string; unidade_id: string }[] | null;
+      } | null;
+    };
+    for (const a of ((aus as unknown as AusRow[]) ?? [])) {
+      const vinculo = um(a.vinculo);
+      const grade = um(vinculo?.grade ?? null);
+      const aluno = um(vinculo?.aluno ?? null);
+      if (!grade || !aluno) continue;
+      if (grade.unidade_id !== unidadeId) continue;
+      const h = horaNum(grade.hora);
+      const lista = ausPorHora.get(h) ?? [];
+      lista.push(aluno.nome);
+      ausPorHora.set(h, lista);
+    }
+
+    type VagaRow = { hora: string; capacidade: number; ocupadas: number; livres: number };
+    return (((vagas as unknown as VagaRow[]) ?? []).map((v) => {
+      const h = horaNum(v.hora);
+      const lista = (porHora.get(h) ?? []).sort((a, b) =>
+        a.origem === b.origem ? a.aluno.nome.localeCompare(b.aluno.nome, 'pt') : a.origem === 'fixo' ? -1 : 1
+      );
+      return {
+        hora: h,
+        capacidade: v.capacidade,
+        reservas: lista,
+        ausencias: ausPorHora.get(h) ?? [],
+      };
+    }) as SlotDia[]);
+  }
+
+  async marcar(p: {
+    unidadeId: string;
+    dataISO: string;
+    hora: number;
+    alunoId: string;
+    fixo?: boolean;
+  }): Promise<ResultadoMarcacao> {
+    const fn = p.fixo ? 'criar_fixo' : 'marcar_reserva';
+    const { error } = await sb().rpc(fn, {
+      p_unidade: p.unidadeId,
+      p_data: p.dataISO,
+      p_hora: horaSql(p.hora),
+      p_aluno: p.alunoId,
+    });
+    if (error) return { ok: false, erro: traduzErro(error.message) };
+    return { ok: true };
+  }
+
+  async setStatus(reservaId: string, status: StatusReserva): Promise<void> {
+    const { error } = await sb().from('reserva').update({ status }).eq('id', reservaId);
+    if (error) throw error;
+  }
+
+  async cancelar(reserva: Reserva): Promise<void> {
+    const { error } = await sb().rpc('registrar_ausencia', { p_reserva: reserva.id });
+    if (error) throw error;
+  }
+
+  async encerrarFixo(reserva: Reserva): Promise<void> {
+    const { error } = await sb().rpc('encerrar_fixo', { p_reserva: reserva.id });
+    if (error) throw error;
+  }
+
+  async listAlunos(): Promise<Aluno[]> {
+    const { data, error } = await sb()
+      .from('aluno')
+      .select('id,nome,telefone,tipo,observacoes,ativo')
+      .order('nome');
+    if (error) throw error;
+    return data ?? [];
+  }
+
+  async buscarAlunos(q: string): Promise<Aluno[]> {
+    let query = sb()
+      .from('aluno')
+      .select('id,nome,telefone,tipo,observacoes,ativo')
+      .eq('ativo', true)
+      .order('nome')
+      .limit(8);
+    if (q.trim()) query = query.ilike('nome', `%${q.trim()}%`);
+    const { data, error } = await query;
+    if (error) throw error;
+    return data ?? [];
+  }
+
+  async criarAluno(p: { nome: string; tipo: TipoAluno; telefone?: string }): Promise<Aluno> {
+    const { data, error } = await sb()
+      .from('aluno')
+      .insert({ nome: p.nome, tipo: p.tipo, telefone: p.telefone ?? null })
+      .select('id,nome,telefone,tipo,observacoes,ativo')
+      .single();
+    if (error) throw error;
+    return data as Aluno;
+  }
+
+  async atualizarAluno(
+    id: string,
+    patch: Partial<Pick<Aluno, 'nome' | 'telefone' | 'tipo' | 'observacoes' | 'ativo'>>
+  ): Promise<void> {
+    const { error } = await sb().from('aluno').update(patch).eq('id', id);
+    if (error) throw error;
+  }
+
+  async proximasDoAluno(alunoId: string): Promise<ProximaAula[]> {
+    const hoje = new Date();
+    const hojeISO =
+      hoje.getFullYear() +
+      '-' +
+      String(hoje.getMonth() + 1).padStart(2, '0') +
+      '-' +
+      String(hoje.getDate()).padStart(2, '0');
+    const { data, error } = await sb()
+      .from('reserva')
+      .select('data,hora,status,unidade:unidade_id(nome)')
+      .eq('aluno_id', alunoId)
+      .neq('status', 'cancelado')
+      .gte('data', hojeISO)
+      .order('data')
+      .order('hora')
+      .limit(5);
+    if (error) throw error;
+    type Row = { data: string; hora: string; status: StatusReserva; unidade: { nome: string } | { nome: string }[] | null };
+    return (((data as unknown as Row[]) ?? []).map((r) => ({
+      data: r.data,
+      hora: horaNum(r.hora),
+      unidadeNome: um(r.unidade)?.nome ?? '',
+      status: r.status,
+    })));
+  }
+
+  async grade(unidadeId: string): Promise<GradeItem[]> {
+    const { data, error } = await sb()
+      .from('grade_horario')
+      .select('dia_semana,hora,capacidade,ativo')
+      .eq('unidade_id', unidadeId);
+    if (error) throw error;
+    type Row = { dia_semana: number; hora: string; capacidade: number | null; ativo: boolean };
+    return (((data as unknown as Row[]) ?? []).map((g) => ({
+      dia_semana: g.dia_semana,
+      hora: horaNum(g.hora),
+      capacidade: g.capacidade,
+      ativo: g.ativo,
+    })));
+  }
+
+  async toggleGrade(unidadeId: string, dia: number, hora: number, ativo: boolean): Promise<void> {
+    const { error } = await sb()
+      .from('grade_horario')
+      .upsert(
+        { unidade_id: unidadeId, dia_semana: dia, hora: horaSql(hora), ativo },
+        { onConflict: 'unidade_id,dia_semana,hora' }
+      );
+    if (error) throw error;
+  }
+
+  async salvarUnidade(u: Unidade): Promise<void> {
+    const { error } = await sb()
+      .from('unidade')
+      .update({ nome: u.nome, capacidade_padrao: u.capacidade_padrao })
+      .eq('id', u.id);
+    if (error) throw error;
+  }
+
+  onReservasChange(cb: () => void): () => void {
+    const channel = sb()
+      .channel('reservas-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reserva' }, () => cb())
+      .subscribe();
+    return () => {
+      sb().removeChannel(channel);
+    };
+  }
+
+  async login(email: string, senha: string): Promise<string | null> {
+    const { error } = await sb().auth.signInWithPassword({ email, password: senha });
+    if (!error) return null;
+    if (error.message.includes('Invalid login credentials')) return 'E-mail ou senha incorretos.';
+    return error.message;
+  }
+
+  async logout(): Promise<void> {
+    await sb().auth.signOut();
+  }
+
+  async sessionInfo(): Promise<Sessao | null> {
+    const { data } = await sb().auth.getSession();
+    const user = data.session?.user;
+    if (!user) return null;
+    const { data: perfil } = await sb()
+      .from('perfil')
+      .select('nome,papel')
+      .eq('id', user.id)
+      .single();
+    return {
+      nome: perfil?.nome ?? user.email ?? 'Equipe',
+      papel: (perfil?.papel as Sessao['papel']) ?? 'professora',
+      email: user.email ?? undefined,
+    };
+  }
+}
