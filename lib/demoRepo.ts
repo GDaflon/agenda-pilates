@@ -76,6 +76,8 @@ class DemoState {
   grade = new Map<string, GradeItem[]>(); // unidadeId -> itens
   fixos = new Map<string, string[]>(); // `${uid}|${wd}|${h}` -> alunoIds
   reservas: ReservaRow[] = [];
+  /** simula a senha temporária do primeiro acesso (nada é salvo) */
+  precisaTrocarSenha = false;
   seq = 1;
 
   private rng = mulberry32(42);
@@ -637,6 +639,18 @@ export class DemoRepo implements AgendaRepo {
   }
 
   async sessionInfo(): Promise<Sessao | null> {
-    return { nome: 'Demonstração', papel: 'dono', email: 'demo@agenda' };
+    return {
+      nome: 'Demonstração',
+      papel: 'dono',
+      email: 'demo@agenda',
+      precisaTrocarSenha: st().precisaTrocarSenha,
+    };
+  }
+
+  async trocarSenha(novaSenha: string): Promise<string | null> {
+    await espera(120);
+    if (novaSenha.length < 8) return 'A senha precisa ter pelo menos 8 caracteres.';
+    st().precisaTrocarSenha = false;
+    return null;
   }
 }

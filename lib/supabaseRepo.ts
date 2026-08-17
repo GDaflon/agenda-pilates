@@ -534,13 +534,31 @@ export class SupabaseRepo implements AgendaRepo {
     if (!user) return null;
     const { data: perfil } = await sb()
       .from('perfil')
-      .select('nome,papel')
+      .select('nome,papel,precisa_trocar_senha')
       .eq('id', user.id)
       .single();
     return {
       nome: perfil?.nome ?? user.email ?? 'Equipe',
       papel: (perfil?.papel as Sessao['papel']) ?? 'professora',
       email: user.email ?? undefined,
+      precisaTrocarSenha: perfil?.precisa_trocar_senha ?? false,
     };
+  }
+
+  async trocarSenha(novaSenha: string): Promise<string | null> {
+    const { data, error } = await sb().auth.updateUser({ password: novaSenha });
+    if (error) {
+      if (error.message.includes('different from the old'))
+        return 'A nova senha precisa ser diferente da senha temporária.';
+      if (error.message.toLowerCase().includes('at least'))
+        return 'A senha precisa ter pelo menos 8 caracteres.';
+      return error.message;
+    }
+    const { error: e2 } = await sb()
+      .from('perfil')
+      .update({ precisa_trocar_senha: false })
+      .eq('id', data.user.id);
+    if (e2) return 'Senha trocada, mas falhou ao atualizar o perfil: ' + e2.message;
+    return null;
   }
 }

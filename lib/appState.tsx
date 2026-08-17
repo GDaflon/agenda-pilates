@@ -82,6 +82,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           router.replace('/login');
           return;
         }
+        if (s.precisaTrocarSenha) {
+          // senha temporária: nenhuma aba é liberada antes da troca
+          router.replace('/trocar-senha');
+          return;
+        }
         setSessao(s);
         const us = await repo.listUnidades();
         if (!vivo) return;

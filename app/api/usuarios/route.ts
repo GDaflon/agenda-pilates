@@ -97,9 +97,10 @@ export async function POST(request: Request) {
       return erroJson(msg, 400);
     }
     // o trigger handle_new_user cria o perfil como professora; ajusta nome/papel
+    // e marca a troca de senha obrigatória no primeiro acesso
     const { error: e2 } = await admin
       .from('perfil')
-      .upsert({ id: data.user.id, nome, papel, ativo: true });
+      .upsert({ id: data.user.id, nome, papel, ativo: true, precisa_trocar_senha: true });
     if (e2) return erroJson('Usuário criado, mas falhou ao ajustar o perfil: ' + e2.message, 500);
     return Response.json({ ok: true, id: data.user.id });
   }

@@ -71,6 +71,8 @@ export interface Sessao {
   nome: string;
   papel: Papel;
   email?: string;
+  /** true = senha temporária: forçar /trocar-senha antes de liberar o app */
+  precisaTrocarSenha?: boolean;
 }
 
 /** resumo do mês corrente do uso da IA (card na Config, admin) */

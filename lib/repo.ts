@@ -74,6 +74,8 @@ export interface AgendaRepo {
   sessionInfo(): Promise<Sessao | null>;
   /** Access token do usuário logado (para chamar as rotas /api com RLS). */
   accessToken?(): Promise<string | null>;
+  /** Troca a senha do usuário logado e zera precisa_trocar_senha. null = ok. */
+  trocarSenha(novaSenha: string): Promise<string | null>;
 }
 
 export function isDemoMode(): boolean {
