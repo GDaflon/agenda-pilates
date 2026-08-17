@@ -1201,3 +1201,39 @@ body {
   margin: 0;
   flex-shrink: 0;
 }
+
+/* ---------- equipe (config) ---------- */
+.equipe-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px dashed var(--line);
+  font-size: 0.9rem;
+}
+.equipe-row.inativo .nm {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+.equipe-papel {
+  font-style: normal;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--brand-ink);
+  background: var(--brand-soft);
+  border-radius: 8px;
+  padding: 1px 7px;
+  margin-left: 6px;
+}
+.equipe-off {
+  font-style: normal;
+  font-size: 0.7rem;
+  color: var(--muted);
+  margin-left: 6px;
+}
+.equipe-acoes {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}

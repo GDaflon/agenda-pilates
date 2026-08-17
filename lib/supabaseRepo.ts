@@ -5,6 +5,8 @@ import {
   DiaMes,
   GradeItem,
   ItemMes,
+  MembroEquipe,
+  Papel,
   ProximaAula,
   Reserva,
   Sessao,
@@ -437,6 +439,50 @@ export class SupabaseRepo implements AgendaRepo {
     if (error) throw error;
   }
 
+  async listEquipe(): Promise<MembroEquipe[]> {
+    const { data, error } = await sb()
+      .from('perfil')
+      .select('id,nome,papel,ativo')
+      .order('nome');
+    if (error) throw error;
+    return (data ?? []) as MembroEquipe[];
+  }
+
+  /** POST /api/usuarios com o token do usuário; o servidor valida admin de novo */
+  private async apiUsuarios(corpo: Record<string, unknown>): Promise<string | null> {
+    const token = await this.accessToken();
+    if (!token) return 'Sessão expirada — faça login de novo.';
+    try {
+      const r = await fetch('/api/usuarios', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(corpo),
+      });
+      const j = await r.json();
+      if (!r.ok) return (j.erro as string) ?? `Erro ${r.status}`;
+      return null;
+    } catch (e) {
+      return (e as Error).message;
+    }
+  }
+
+  async criarUsuario(p: {
+    nome: string;
+    email: string;
+    senha: string;
+    papel: Papel;
+  }): Promise<string | null> {
+    return this.apiUsuarios({ acao: 'criar', ...p });
+  }
+
+  async setPapelUsuario(id: string, papel: Papel): Promise<string | null> {
+    return this.apiUsuarios({ acao: 'papel', id, papel });
+  }
+
+  async setAtivoUsuario(id: string, ativo: boolean): Promise<string | null> {
+    return this.apiUsuarios({ acao: 'ativo', id, ativo });
+  }
+
   onReservasChange(cb: () => void): () => void {
     const channel = sb()
       .channel('reservas-realtime')
@@ -451,6 +497,7 @@ export class SupabaseRepo implements AgendaRepo {
     const { error } = await sb().auth.signInWithPassword({ email, password: senha });
     if (!error) return null;
     if (error.message.includes('Invalid login credentials')) return 'E-mail ou senha incorretos.';
+    if (error.message.toLowerCase().includes('banned')) return 'Conta desativada — fale com a administração.';
     return error.message;
   }
 

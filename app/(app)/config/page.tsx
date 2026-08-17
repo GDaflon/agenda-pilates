@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/lib/appState';
 import { DIAS_LONGO, horaFmt } from '@/lib/dates';
-import { GradeItem, PAPEL_LABEL } from '@/lib/types';
+import { GradeItem, MembroEquipe, PAPEL_LABEL, Papel } from '@/lib/types';
 
 // passos de 30min, de 05:00 a 21:30 (minutos do dia)
 const HORAS_POSSIVEIS = Array.from({ length: (21 * 60 + 30 - 5 * 60) / 30 + 1 }, (_, i) => 5 * 60 + i * 30);
@@ -27,6 +27,69 @@ export default function ConfigPage() {
     return d === 0 ? 1 : d;
   });
   const [salvandoUnidade, setSalvandoUnidade] = useState(false);
+
+  // equipe (admin)
+  const [equipe, setEquipe] = useState<MembroEquipe[] | null>(null);
+  const [eqNome, setEqNome] = useState('');
+  const [eqEmail, setEqEmail] = useState('');
+  const [eqSenha, setEqSenha] = useState('');
+  const [eqPapel, setEqPapel] = useState<Papel>('professora');
+  const [eqCriando, setEqCriando] = useState(false);
+  const [eqOcupado, setEqOcupado] = useState<string | null>(null); // id em operação
+
+  useEffect(() => {
+    if (!admin) return;
+    repo
+      .listEquipe()
+      .then(setEquipe)
+      .catch((e) => toast('Erro ao carregar equipe: ' + (e as Error).message));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [admin]);
+
+  async function recarregarEquipe() {
+    setEquipe(await repo.listEquipe());
+  }
+
+  async function criarMembro() {
+    if (eqCriando) return;
+    setEqCriando(true);
+    const erro = await repo.criarUsuario({
+      nome: eqNome.trim(),
+      email: eqEmail.trim(),
+      senha: eqSenha,
+      papel: eqPapel,
+    });
+    if (erro) {
+      toast(erro);
+    } else {
+      toast(`${eqNome.trim()} pode entrar com ${eqEmail.trim()} e a senha temporária ✓`);
+      setEqNome('');
+      setEqEmail('');
+      setEqSenha('');
+      setEqPapel('professora');
+      await recarregarEquipe();
+    }
+    setEqCriando(false);
+  }
+
+  async function trocarPapel(m: MembroEquipe) {
+    setEqOcupado(m.id);
+    const erro = await repo.setPapelUsuario(m.id, m.papel === 'admin' ? 'professora' : 'admin');
+    if (erro) toast(erro);
+    else await recarregarEquipe();
+    setEqOcupado(null);
+  }
+
+  async function trocarAtivo(m: MembroEquipe) {
+    setEqOcupado(m.id);
+    const erro = await repo.setAtivoUsuario(m.id, !m.ativo);
+    if (erro) toast(erro);
+    else {
+      toast(m.ativo ? `${m.nome} desativado(a) — não consegue mais entrar.` : `${m.nome} reativado(a) ✓`);
+      await recarregarEquipe();
+    }
+    setEqOcupado(null);
+  }
 
   useEffect(() => {
     if (!unidade) return;
@@ -173,6 +236,82 @@ export default function ConfigPage() {
           </div>
           <button className="btn small" disabled={!novaNome.trim() || criando} onClick={criarUnidade}>
             {criando ? 'Criando…' : '＋ Criar unidade'}
+          </button>
+        </div>
+      )}
+
+      {admin && (
+        <div className="card-box">
+          <h2>Equipe</h2>
+          <p className="section-note" style={{ margin: '2px 0 8px' }}>
+            Professoras entram com e-mail e senha. Desativar bloqueia o login na hora.
+            {demo ? ' (demo: simulado em memória)' : ''}
+          </p>
+          {!equipe ? (
+            <div className="skel" style={{ height: 80 }} />
+          ) : (
+            equipe.map((m) => (
+              <div key={m.id} className={`equipe-row ${m.ativo ? '' : 'inativo'}`}>
+                <span className="nm">
+                  {m.nome}
+                  <em className="equipe-papel">{PAPEL_LABEL[m.papel]}</em>
+                  {!m.ativo && <em className="equipe-off">desativado</em>}
+                </span>
+                <span className="equipe-acoes">
+                  <button
+                    className="mini-plain"
+                    disabled={eqOcupado === m.id}
+                    onClick={() => trocarPapel(m)}
+                  >
+                    {m.papel === 'admin' ? 'virar professora' : 'virar admin'}
+                  </button>
+                  <button
+                    className={`mini-plain ${m.ativo ? 'danger' : ''}`}
+                    disabled={eqOcupado === m.id}
+                    onClick={() => trocarAtivo(m)}
+                  >
+                    {m.ativo ? 'desativar' : 'reativar'}
+                  </button>
+                </span>
+              </div>
+            ))
+          )}
+          <span className="field-label">Nova professora</span>
+          <input
+            className="field"
+            placeholder="Nome"
+            value={eqNome}
+            onChange={(e) => setEqNome(e.target.value)}
+          />
+          <input
+            className="field"
+            type="email"
+            placeholder="E-mail"
+            autoComplete="off"
+            value={eqEmail}
+            onChange={(e) => setEqEmail(e.target.value)}
+          />
+          <input
+            className="field"
+            type="text"
+            placeholder="Senha temporária (6+ caracteres)"
+            autoComplete="off"
+            value={eqSenha}
+            onChange={(e) => setEqSenha(e.target.value)}
+          />
+          <div className="seg" style={{ marginTop: 6 }}>
+            {(['professora', 'admin'] as Papel[]).map((p) => (
+              <button key={p} className={eqPapel === p ? 'active' : ''} onClick={() => setEqPapel(p)}>
+                {PAPEL_LABEL[p]}
+              </button>
+            ))}
+          </div>
+          <button
+            className="btn small"
+            disabled={!eqNome.trim() || !eqEmail.trim() || eqSenha.length < 6 || eqCriando}
+            onClick={criarMembro}
+          >
+            {eqCriando ? 'Criando…' : '＋ Criar usuário'}
           </button>
         </div>
       )}

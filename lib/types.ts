@@ -73,6 +73,15 @@ export interface Sessao {
   email?: string;
 }
 
+/** membro da equipe listado no card Equipe (Config, admin) */
+export interface MembroEquipe {
+  id: string;
+  nome: string;
+  papel: Papel;
+  ativo: boolean;
+  email?: string;
+}
+
 export const TIPO_LABEL: Record<TipoAluno, string> = {
   mensalista: 'Mensalista',
   wellhub: 'Wellhub',

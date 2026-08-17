@@ -30,6 +30,7 @@ create table if not exists perfil (
   id        uuid primary key references auth.users(id) on delete cascade,
   nome      text not null,
   papel     text not null default 'professora' check (papel in ('admin','professora')),
+  ativo     boolean not null default true,
   criado_em timestamptz not null default now()
 );
 

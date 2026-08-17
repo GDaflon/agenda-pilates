@@ -2,6 +2,8 @@ import {
   Aluno,
   DiaMes,
   GradeItem,
+  MembroEquipe,
+  Papel,
   ProximaAula,
   Reserva,
   Sessao,
@@ -52,6 +54,12 @@ export interface AgendaRepo {
   criarUnidade(p: { nome: string; capacidade: number }): Promise<Unidade>;
   /** Desativa a unidade (some das listas; histórico preservado). */
   excluirUnidade(id: string): Promise<void>;
+
+  // equipe (admin) — no Supabase passa pela rota /api/usuarios (service role)
+  listEquipe(): Promise<MembroEquipe[]>;
+  criarUsuario(p: { nome: string; email: string; senha: string; papel: Papel }): Promise<string | null>; // null = ok
+  setPapelUsuario(id: string, papel: Papel): Promise<string | null>;
+  setAtivoUsuario(id: string, ativo: boolean): Promise<string | null>;
 
   // tempo real
   onReservasChange(cb: () => void): () => void;

@@ -4,6 +4,8 @@ import {
   DiaMes,
   GradeItem,
   ItemMes,
+  MembroEquipe,
+  Papel,
   ProximaAula,
   Reserva,
   Sessao,
@@ -65,6 +67,11 @@ class DemoState {
     { id: 'u-jardim', nome: 'Jardim', capacidade_padrao: 5 },
   ];
   alunos: Aluno[] = [];
+  equipe: MembroEquipe[] = [
+    { id: 'p-1', nome: 'Demonstração', papel: 'admin', ativo: true, email: 'demo@agenda' },
+    { id: 'p-2', nome: 'Fernanda Souza', papel: 'professora', ativo: true, email: 'fernanda@natty.demo' },
+    { id: 'p-3', nome: 'Carla Lima', papel: 'professora', ativo: true, email: 'carla@natty.demo' },
+  ];
   grade = new Map<string, GradeItem[]>(); // unidadeId -> itens
   fixos = new Map<string, string[]>(); // `${uid}|${wd}|${h}` -> alunoIds
   reservas: ReservaRow[] = [];
@@ -567,6 +574,46 @@ export class DemoRepo implements AgendaRepo {
     const s = st();
     s.unidades = s.unidades.filter((u) => u.id !== id);
     this.notify();
+  }
+
+  async listEquipe(): Promise<MembroEquipe[]> {
+    await espera(40);
+    return [...st().equipe];
+  }
+
+  async criarUsuario(p: {
+    nome: string;
+    email: string;
+    senha: string;
+    papel: Papel;
+  }): Promise<string | null> {
+    await espera(120);
+    const s = st();
+    const email = p.email.trim().toLowerCase();
+    if (!p.nome.trim() || !email || p.senha.length < 6) {
+      return 'Informe nome, e-mail e uma senha temporária com 6+ caracteres.';
+    }
+    if (s.equipe.some((m) => m.email === email)) return 'Já existe usuário com esse e-mail.';
+    s.equipe.push({ id: s.novoId('p'), nome: p.nome.trim(), papel: p.papel, ativo: true, email });
+    return null;
+  }
+
+  async setPapelUsuario(id: string, papel: Papel): Promise<string | null> {
+    await espera(60);
+    const m = st().equipe.find((x) => x.id === id);
+    if (!m) return 'Usuário não encontrado.';
+    if (m.id === 'p-1' && papel !== 'admin') return 'Você não pode remover o próprio papel de admin.';
+    m.papel = papel;
+    return null;
+  }
+
+  async setAtivoUsuario(id: string, ativo: boolean): Promise<string | null> {
+    await espera(60);
+    const m = st().equipe.find((x) => x.id === id);
+    if (!m) return 'Usuário não encontrado.';
+    if (m.id === 'p-1' && !ativo) return 'Você não pode desativar a própria conta.';
+    m.ativo = ativo;
+    return null;
   }
 
   onReservasChange(cb: () => void): () => void {
