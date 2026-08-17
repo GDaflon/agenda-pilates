@@ -180,7 +180,7 @@ async function executaFerramenta(
     if (error) return { texto: 'erro ao buscar aluno: ' + error.message, mudouAgenda: false };
     if (!data?.length) {
       return {
-        texto: `nenhum aluno cadastrado com "${termo}" — se for aluno novo, use marcar_aluno com nome_novo (confirme antes com o usuário)`,
+        texto: `nenhum aluno cadastrado com "${termo}" — cadastre direto com marcar_aluno usando nome_novo (tipo padrão wellhub) e AVISE na resposta que o aluno foi criado`,
         mudouAgenda: false,
       };
     }
@@ -374,7 +374,9 @@ export async function POST(request: Request) {
     `- Responda CURTO, confirmando dia, horário, unidade e vagas restantes.\n` +
     `- Quando algo estiver ambíguo (nome que bate com mais de um aluno, falta de dia, horário ou unidade), PERGUNTE em vez de adivinhar.\n` +
     `- Nunca invente dados de agenda ou de alunos — use sempre as ferramentas.\n` +
-    `- Antes de marcar ou desmarcar, localize o aluno com buscar_aluno; só cadastre aluno novo (nome_novo) se a busca não encontrar ninguém compatível.`;
+    `- Antes de marcar ou desmarcar, localize o aluno com buscar_aluno. Se a busca não encontrar NINGUÉM, cadastre direto com nome_novo (wellhub, salvo indicação) e avise que o aluno foi criado. Se encontrar mais de um compatível, pergunte qual é.\n` +
+    `- Se o horário pedido estiver LOTADO, NÃO marque outro horário por conta própria: mostre as alternativas com vaga do dia e pergunte qual o usuário quer.\n` +
+    `- Responda em texto puro, SEM markdown (nada de ** ou #) — o chat não formata; emojis podem.`;
 
   // ---- controle de custo (zero surpresa) ----
   // service role SÓ para a tabela uso_ia; a agenda continua no client com RLS
@@ -453,8 +455,24 @@ export async function POST(request: Request) {
       }
       mensagens.push({ role: 'user', content: resultados });
     }
+    // acabaram as rodadas de ferramenta: uma última chamada SEM ferramentas
+    // só para o modelo confirmar em texto o que já foi feito
+    const fecho = await client.messages.create({
+      model: MODELO,
+      max_tokens: 600,
+      system,
+      tools: FERRAMENTAS,
+      tool_choice: { type: 'none' },
+      messages: mensagens,
+    });
+    await registraUso(fecho.usage);
+    const textoFecho = fecho.content
+      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+      .map((b) => b.text)
+      .join('\n')
+      .trim();
     return Response.json({
-      resposta: 'Precisei de muitas etapas e parei por segurança — confira a agenda e, se faltou algo, mande o comando de novo.',
+      resposta: textoFecho || 'Feito — confira a agenda para confirmar.',
       houveAcao,
     });
   } catch (e) {

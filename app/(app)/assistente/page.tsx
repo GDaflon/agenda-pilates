@@ -13,7 +13,7 @@ interface Msg {
 function chipsDe(unidadeNome: string | undefined): string[] {
   return [
     'Quais vagas tem amanhã de manhã?',
-    `Marca a Maria amanhã às 7h30${unidadeNome ? ` na ${unidadeNome}` : ''}`,
+    `Marca a Maria amanhã às 7h30${unidadeNome ? ` na unidade ${unidadeNome}` : ''}`,
     'Desmarca o João de hoje 18h30',
   ];
 }
