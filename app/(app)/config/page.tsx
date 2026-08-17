@@ -384,8 +384,9 @@ export default function ConfigPage() {
       <div className="card-box">
         <h2>Sobre</h2>
         <p className="section-note" style={{ margin: '2px 0 0' }}>
-          Agenda Pilates · Fase 1 (MVP interno) · modo {demo ? 'demonstração' : 'produção'}.
-          Próximas fases: relatórios (2), autoatendimento Wellhub/TotalPass (3) e assistente IA (4).
+          Natty Estúdio Pilates · agenda interna com assistente IA · modo{' '}
+          {demo ? 'demonstração' : 'produção'}. Próximas fases: relatórios (2) e autoatendimento
+          Wellhub/TotalPass (3).
         </p>
       </div>
     </div>
