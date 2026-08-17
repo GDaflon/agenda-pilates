@@ -22,7 +22,7 @@ export interface Reserva {
   id: string;
   unidade_id: string;
   data: string; // YYYY-MM-DD
-  hora: number; // 0-23
+  hora: number; // minutos do dia (330 = 05:30)
   aluno: Aluno;
   tipo_no_dia: TipoAluno;
   origem: OrigemReserva;
@@ -30,7 +30,7 @@ export interface Reserva {
 }
 
 export interface SlotDia {
-  hora: number;
+  hora: number; // minutos do dia
   capacidade: number;
   reservas: Reserva[]; // apenas ativas (status != cancelado)
   ausencias: string[]; // nomes de fixos que avisaram falta no dia
@@ -38,7 +38,7 @@ export interface SlotDia {
 
 export interface GradeItem {
   dia_semana: number;
-  hora: number;
+  hora: number; // minutos do dia
   capacidade: number | null;
   ativo: boolean;
 }

@@ -12,7 +12,7 @@ import {
   TipoAluno,
   Unidade,
 } from './types';
-import { agoraHora, dataDoMes, dateFor, diaSemanaDe, diasNoMes, iso } from './dates';
+import { agoraMin, dataDoMes, dateFor, diaSemanaDe, diasNoMes, iso } from './dates';
 import { norm } from './text';
 
 /* ============================================================
@@ -45,11 +45,17 @@ function mulberry32(a: number) {
 
 const NOMES = ['Ana','Beatriz','Bruna','Camila','Carla','Cecília','Cláudia','Daniela','Débora','Elaine','Fernanda','Flávia','Gabriela','Helena','Isabela','Juliana','Larissa','Lúcia','Marcela','Mariana','Marta','Natália','Patrícia','Paula','Renata','Roberta','Sandra','Simone','Sônia','Tatiane','Vanessa','Vera','Vitória','Bruno','Carlos','Diego','Eduardo','Gustavo','Leonardo','Márcio','Otávio','Rafael','Ricardo','Rodrigo','Thiago'];
 const SOBRENOMES = ['Silva','Souza','Oliveira','Santos','Costa','Pereira','Almeida','Nunes','Lima','Ferreira','Ramos','Rocha','Dias','Moreira','Barbosa','Teixeira','Cardoso','Martins','Freitas','Campos'];
-const POPULARES = [6, 7, 8, 18, 19];
+/** hh:mm → minutos do dia */
+const min = (hh: number, mm = 30) => hh * 60 + mm;
 
+const POPULARES = [min(6), min(7), min(8), min(18), min(19)];
+
+// grade padrão: seg–sex 05:30–11:30 e 15:30–19:30, sáb 08:30–11:30
 function gradeHoras(wd: number): number[] {
-  if (wd >= 1 && wd <= 5) return [6, 7, 8, 9, 10, 11, 15, 16, 17, 18, 19];
-  if (wd === 6) return [8, 9, 10, 11];
+  if (wd >= 1 && wd <= 5) {
+    return [min(5), min(6), min(7), min(8), min(9), min(10), min(11), min(15), min(16), min(17), min(18), min(19)];
+  }
+  if (wd === 6) return [min(8), min(9), min(10), min(11)];
   return [];
 }
 
@@ -158,7 +164,7 @@ class DemoState {
     for (let off = 0; off <= 13; off++) this.materializarDia(off);
 
     // avulsos de exemplo nos 3 primeiros dias
-    const agora = agoraHora();
+    const agora = agoraMin();
     for (let off = 0; off <= 2; off++) {
       const data = iso(dateFor(off));
       const wd = dateFor(off).getDay();

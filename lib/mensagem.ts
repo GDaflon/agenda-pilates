@@ -1,5 +1,5 @@
 import { SlotDia } from './types';
-import { agoraHora, horaFmt, nomeDia } from './dates';
+import { agoraMin, horaFmt, nomeDia } from './dates';
 
 export interface LinhaVaga {
   h: number;
@@ -8,7 +8,7 @@ export interface LinhaVaga {
 
 /** Horários com vaga > 0; para hoje, só horários que ainda não passaram. */
 export function linhasVagas(slots: SlotDia[], off: number): LinhaVaga[] {
-  const agora = agoraHora();
+  const agora = agoraMin();
   return slots
     .filter((s) => off > 0 || s.hora >= agora)
     .map((s) => ({ h: s.hora, vagas: s.capacidade - s.reservas.length }))
@@ -18,7 +18,7 @@ export function linhasVagas(slots: SlotDia[], off: number): LinhaVaga[] {
 export function buildMensagem(unidadeNome: string, off: number, slots: SlotDia[]): string {
   const ls = linhasVagas(slots, off);
   if (!ls.length) {
-    const agora = agoraHora();
+    const agora = agoraMin();
     const encerrou = off === 0 && slots.length > 0 && slots.every((s) => s.hora < agora);
     if (encerrou) {
       return `🧘‍♀️ *Natty Pilates ${unidadeNome}*\n\nEncerramos as turmas de hoje! 🙏\nAmanhã cedo mando os horários com vaga.`;

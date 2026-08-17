@@ -35,23 +35,32 @@ export function nomeDia(off: number): string {
   return prefixo + DIAS_ABR[d.getDay()] + ' ' + ddmm(d);
 }
 
-export function horaFmt(h: number): string {
-  return String(h).padStart(2, '0') + 'h';
+/* Horário = minutos do dia (330 = 05:30). */
+
+/** 330 → "05h30" */
+export function horaFmt(min: number): string {
+  return (
+    String(Math.floor(min / 60)).padStart(2, '0') + 'h' + String(min % 60).padStart(2, '0')
+  );
 }
 
-/** "06:00:00" | "06:00" | 6 → 6 */
+/** "05:30:00" | "05:30" | 330 → 330 (minutos do dia) */
 export function horaNum(v: string | number): number {
   if (typeof v === 'number') return v;
-  return parseInt(v.slice(0, 2), 10);
+  return parseInt(v.slice(0, 2), 10) * 60 + parseInt(v.slice(3, 5) || '0', 10);
 }
 
-/** 6 → "06:00" (formato time do Postgres) */
-export function horaSql(h: number): string {
-  return String(h).padStart(2, '0') + ':00';
+/** 330 → "05:30" (formato time do Postgres) */
+export function horaSql(min: number): string {
+  return (
+    String(Math.floor(min / 60)).padStart(2, '0') + ':' + String(min % 60).padStart(2, '0')
+  );
 }
 
-export function agoraHora(): number {
-  return new Date().getHours();
+/** Minutos do dia neste instante (para "horário já passou hoje"). */
+export function agoraMin(): number {
+  const d = new Date();
+  return d.getHours() * 60 + d.getMinutes();
 }
 
 /** mes 1-12 */

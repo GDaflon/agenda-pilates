@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useApp } from '@/lib/appState';
-import { agoraHora, dateFor, horaFmt, iso } from '@/lib/dates';
+import { agoraMin, dateFor, horaFmt, iso } from '@/lib/dates';
 import { Reserva, SlotDia } from '@/lib/types';
 import Badge from '@/components/Badge';
 import MarcarSheet from '@/components/MarcarSheet';
@@ -15,7 +15,7 @@ export default function AgendaPage() {
   const [reservaSel, setReservaSel] = useState<Reserva | null>(null);
 
   const dataISO = iso(dateFor(off));
-  const agora = agoraHora();
+  const agora = agoraMin();
 
   useEffect(() => {
     if (!unidade) return;
