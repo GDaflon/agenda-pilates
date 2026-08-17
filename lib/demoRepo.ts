@@ -69,7 +69,7 @@ class DemoState {
   ];
   alunos: Aluno[] = [];
   equipe: MembroEquipe[] = [
-    { id: 'p-1', nome: 'Demonstração', papel: 'admin', ativo: true, email: 'demo@agenda' },
+    { id: 'p-1', nome: 'Demonstração', papel: 'dono', ativo: true, email: 'demo@agenda' },
     { id: 'p-2', nome: 'Fernanda Souza', papel: 'professora', ativo: true, email: 'fernanda@natty.demo' },
     { id: 'p-3', nome: 'Carla Lima', papel: 'professora', ativo: true, email: 'carla@natty.demo' },
   ];
@@ -603,7 +603,7 @@ export class DemoRepo implements AgendaRepo {
     await espera(60);
     const m = st().equipe.find((x) => x.id === id);
     if (!m) return 'Usuário não encontrado.';
-    if (m.id === 'p-1' && papel !== 'admin') return 'Você não pode remover o próprio papel de admin.';
+    if (m.id === 'p-1' && papel !== 'dono') return 'Você não pode remover o próprio papel de dono.';
     m.papel = papel;
     return null;
   }
@@ -637,6 +637,6 @@ export class DemoRepo implements AgendaRepo {
   }
 
   async sessionInfo(): Promise<Sessao | null> {
-    return { nome: 'Demonstração', papel: 'admin', email: 'demo@agenda' };
+    return { nome: 'Demonstração', papel: 'dono', email: 'demo@agenda' };
   }
 }

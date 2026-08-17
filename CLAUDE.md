@@ -16,6 +16,7 @@ App Next.js 16 (App Router) + Supabase. Identidade visual em `branding/BRAND.md`
 - **Horário = minutos do dia** (`hora: number`, 330 = 05:30) em todo o app; exibição "05h30" via `horaFmt`. O banco usa `time`; `horaNum`/`horaSql` em `lib/dates.ts` fazem a ponte. Turmas começam nas meias horas (grade padrão 05:30–11:30 e 15:30–19:30 seg–sex, 08:30–11:30 sáb).
 - Toda a lógica de agenda mora nas funções SQL (`supabase/schema.sql`): `gerar_dia`, `vagas_do_dia`, `marcar_reserva`, `registrar_ausencia`, `criar_fixo`, `encerrar_fixo`. Rotas e telas só chamam essas funções — nunca duplique regra de capacidade/fixo no TS.
 - `lib/repo.ts` é a interface única de dados; `demoRepo` (memória) e `supabaseRepo` precisam se manter equivalentes.
+- Papéis: `dono` (vê a aba Config — unidades, grade, equipe, uso da IA) e `professora` (opera a agenda; sem Config). A checagem de verdade é no servidor/RLS (`is_dono()`, `/api/usuarios`); a UI só esconde. A sessão demo é dono.
 - Mudou o schema? Além do `schema.sql`/`seed.sql`, crie um arquivo numerado em `supabase/migrations/` para quem já está em produção.
 
 ## Variáveis de ambiente
@@ -24,8 +25,8 @@ App Next.js 16 (App Router) + Supabase. Identidade visual em `branding/BRAND.md`
 - `SUPABASE_SERVICE_ROLE_KEY` — server-only; usada só por `app/api/usuarios` (Config → Equipe). Nunca `NEXT_PUBLIC`.
 - `ANTHROPIC_API_KEY` — server-only; ativa a IA da aba ✨ Assistente (`app/api/assistente`). Sem ela a aba usa o parser local `lib/assistenteLocal.ts`.
 - `ANTHROPIC_MODEL` — opcional, default `claude-haiku-4-5`. Preços por modelo em `lib/precosIa.ts` — atualize lá se trocar.
-- `IA_LIMITE_MENSAL_USD` — teto mensal do assistente em US$ (default 5). Cada resposta da API grava tokens+custo na tabela `uso_ia` (insert só via service role; equipe lê). Ao atingir o limite, `/api/assistente` responde no chat sem chamar a API; entre 80% e 100% anexa aviso de consumo. Card "Uso da IA" na Config (admin).
+- `IA_LIMITE_MENSAL_USD` — teto mensal do assistente em US$ (default 5). Cada resposta da API grava tokens+custo na tabela `uso_ia` (insert só via service role; equipe lê). Ao atingir o limite, `/api/assistente` responde no chat sem chamar a API; entre 80% e 100% anexa aviso de consumo. Card "Uso da IA" na Config (dono).
 
 ## Segurança das rotas /api
 
-Sempre exigir o access token Supabase do usuário (`Authorization: Bearer`) e criar o client com esse token para as policies (RLS) valerem; `/api/usuarios` ainda confirma `papel='admin'` na tabela `perfil` no servidor antes de usar a service role key.
+Sempre exigir o access token Supabase do usuário (`Authorization: Bearer`) e criar o client com esse token para as policies (RLS) valerem; `/api/usuarios` ainda confirma `papel='dono'` na tabela `perfil` no servidor antes de usar a service role key.

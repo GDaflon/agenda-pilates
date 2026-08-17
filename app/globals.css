@@ -1288,3 +1288,22 @@ body {
   border-radius: 999px;
   transition: width 0.4s ease;
 }
+
+/* ---------- sair (cabeçalho) ---------- */
+.logout-btn {
+  margin-left: 10px;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.logout-btn:active {
+  color: var(--brand);
+  border-color: var(--brand);
+}

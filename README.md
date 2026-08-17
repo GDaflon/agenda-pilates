@@ -30,19 +30,19 @@ O arquivo `.env.local` com `NEXT_PUBLIC_DEMO=1` já força o modo demo. É o mes
 2. **SQL Editor** → cole e rode o conteúdo de [`supabase/schema.sql`](supabase/schema.sql) (uma vez).
 3. Ainda no SQL Editor → rode [`supabase/seed.sql`](supabase/seed.sql) — **antes, ajuste os nomes das 3 unidades** no arquivo.
 
-### 2. Criar o primeiro usuário (admin)
+### 2. Criar o primeiro usuário (dono)
 
 1. **Authentication → Users → Add user** → seu e-mail + senha. Marque *Auto Confirm User*.
-2. Todo usuário novo entra como `professora`. Promova você a admin no SQL Editor:
+2. Todo usuário novo entra como `professora`. Promova você a dono(a) no SQL Editor:
 
 ```sql
-update perfil set papel = 'admin', nome = 'Nome da Mãe'
+update perfil set papel = 'dono', nome = 'Nome da Mãe'
  where id = (select id from auth.users where email = 'email-dela@exemplo.com');
 ```
 
-3. As **professoras** você cria pelo próprio app: **Config → Equipe** (só admin) — nome, e-mail, senha temporária e papel. Lá também dá para trocar papel e desativar o acesso. (Precisa da `SUPABASE_SERVICE_ROLE_KEY` no passo 3.)
+3. As **professoras** você cria pelo próprio app: **Config → Equipe** (só dono) — nome, e-mail, senha temporária e papel. Lá também dá para trocar papel e desativar o acesso. (Precisa da `SUPABASE_SERVICE_ROLE_KEY` no passo 3.)
 
-> Já rodou o schema antigo? Rode também os arquivos de [`supabase/migrations/`](supabase/migrations/) na ordem (002 = grade nas meias horas, 003 = coluna `ativo` do perfil, 004 = tabela `uso_ia` do assistente).
+> Já rodou o schema antigo? Rode também os arquivos de [`supabase/migrations/`](supabase/migrations/) na ordem (002 = grade nas meias horas, 003 = coluna `ativo` do perfil, 004 = tabela `uso_ia`, 005 = papel admin→dono).
 
 ### 3. Variáveis de ambiente
 
@@ -64,7 +64,7 @@ IA_LIMITE_MENSAL_USD=5
 ```
 
 (O arquivo [`.env.example`](.env.example) tem o modelo completo.) Cada resposta da IA grava tokens
-e custo na tabela `uso_ia`; o card **Config → Uso da IA** (admin) mostra o consumo do mês com
+e custo na tabela `uso_ia`; o card **Config → Uso da IA** (só dono) mostra o consumo do mês com
 barra de progresso, e o assistente pausa sozinho ao atingir o limite.
 
 Sem `ANTHROPIC_API_KEY` o app continua funcionando — a aba Assistente cai num parser local simples e avisa na tela. (Remova/comente o `NEXT_PUBLIC_DEMO=1`.) Rode `npm run dev` e faça login — pronto, dados reais.
@@ -103,10 +103,10 @@ app/
     vagas/          Mensagem de vagas p/ WhatsApp (copiar com 1 toque)
     assistente/     ✨ Assistente (chat com IA: marcar/desmarcar/vagas por texto ou voz)
     alunos/         Lista/cadastro/edição de alunos
-    config/         Admin: unidades, grade semanal, equipe, conta
+    config/         Só dono: unidades, grade semanal, equipe, uso da IA
   api/
     assistente/     POST: Claude API com tool use sobre as funções SQL da agenda
-    usuarios/       POST: admin cria/gerencia usuários (service role key)
+    usuarios/       POST: dono cria/gerencia usuários (service role key)
   login/            Login e-mail/senha (ou entrada demo)
 components/         Sheets de marcação/reserva/aluno, shell, badges
 lib/
@@ -130,7 +130,7 @@ supabase/
 - Sem marcação duplicada ativa (índice único `reserva_unica`).
 - Fixos materializados por dia pela função idempotente `gerar_dia`.
 - Ausência de fixo (`registrar_ausencia`) libera a vaga **só naquele dia**.
-- RLS: só usuários com `perfil` acessam; estrutura (unidades/grade) só admin.
+- RLS: só usuários com `perfil` acessam; estrutura (unidades/grade) só dono.
 
 ---
 

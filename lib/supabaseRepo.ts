@@ -450,7 +450,7 @@ export class SupabaseRepo implements AgendaRepo {
     return (data ?? []) as MembroEquipe[];
   }
 
-  /** POST /api/usuarios com o token do usuário; o servidor valida admin de novo */
+  /** POST /api/usuarios com o token do usuário; o servidor valida o papel dono de novo */
   private async apiUsuarios(corpo: Record<string, unknown>): Promise<string | null> {
     const token = await this.accessToken();
     if (!token) return 'Sessão expirada — faça login de novo.';

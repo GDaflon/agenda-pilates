@@ -1,7 +1,7 @@
 export type TipoAluno = 'mensalista' | 'wellhub' | 'totalpass';
 export type StatusReserva = 'reservado' | 'checkin' | 'falta' | 'cancelado';
 export type OrigemReserva = 'fixo' | 'manual' | 'portal' | 'assistente';
-export type Papel = 'admin' | 'professora';
+export type Papel = 'dono' | 'professora';
 
 export interface Unidade {
   id: string;
@@ -97,7 +97,7 @@ export const TIPO_LABEL: Record<TipoAluno, string> = {
 };
 
 export const PAPEL_LABEL: Record<Papel, string> = {
-  admin: 'Dono(a)',
+  dono: 'Dono(a) do estúdio',
   professora: 'Professor(a)',
 };
 

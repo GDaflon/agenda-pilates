@@ -25,11 +25,11 @@ create table if not exists unidade (
   ativo             boolean not null default true
 );
 
--- professoras/admin; espelha auth.users
+-- professoras/dono; espelha auth.users
 create table if not exists perfil (
   id        uuid primary key references auth.users(id) on delete cascade,
   nome      text not null,
-  papel     text not null default 'professora' check (papel in ('admin','professora')),
+  papel     text not null default 'professora' check (papel in ('dono','professora')),
   ativo     boolean not null default true,
   criado_em timestamptz not null default now()
 );
@@ -133,9 +133,9 @@ returns boolean language sql security definer stable set search_path = public as
   select exists (select 1 from perfil where id = auth.uid());
 $$;
 
-create or replace function is_admin()
+create or replace function is_dono()
 returns boolean language sql security definer stable set search_path = public as $$
-  select exists (select 1 from perfil where id = auth.uid() and papel = 'admin');
+  select exists (select 1 from perfil where id = auth.uid() and papel = 'dono');
 $$;
 
 -- ---------- RLS ----------
@@ -148,11 +148,11 @@ alter table reserva       enable row level security;
 alter table ausencia_fixo enable row level security;
 alter table uso_ia        enable row level security;
 
--- equipe lê tudo; escrita operacional para equipe; estrutura só admin
+-- equipe lê tudo; escrita operacional para equipe; estrutura só dono
 drop policy if exists unidade_select on unidade;
 create policy unidade_select on unidade for select to authenticated using (is_team());
 drop policy if exists unidade_write on unidade;
-create policy unidade_write on unidade for all to authenticated using (is_admin()) with check (is_admin());
+create policy unidade_write on unidade for all to authenticated using (is_dono()) with check (is_dono());
 
 drop policy if exists perfil_select on perfil;
 create policy perfil_select on perfil for select to authenticated using (is_team());
@@ -162,7 +162,7 @@ create policy perfil_update on perfil for update to authenticated using (id = au
 drop policy if exists grade_select on grade_horario;
 create policy grade_select on grade_horario for select to authenticated using (is_team());
 drop policy if exists grade_write on grade_horario;
-create policy grade_write on grade_horario for all to authenticated using (is_admin()) with check (is_admin());
+create policy grade_write on grade_horario for all to authenticated using (is_dono()) with check (is_dono());
 
 drop policy if exists aluno_all on aluno;
 create policy aluno_all on aluno for all to authenticated using (is_team()) with check (is_team());

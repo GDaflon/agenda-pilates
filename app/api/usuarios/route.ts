@@ -1,21 +1,21 @@
 import { SupabaseClient, createClient } from '@supabase/supabase-js';
 
 /* ============================================================
-   POST /api/usuarios — gestão de equipe (só admin).
+   POST /api/usuarios — gestão de equipe (só dono).
 
    Usa a SUPABASE_SERVICE_ROLE_KEY (server-only, NUNCA NEXT_PUBLIC)
    para criar usuários no auth e ajustar a tabela perfil. Antes de
    qualquer ação, o token do CHAMADOR é validado no servidor e o
-   papel 'admin' é confirmado na tabela perfil — nunca se confia
+   papel 'dono' é confirmado na tabela perfil — nunca se confia
    só no front.
 
    Ações (campo "acao" no corpo):
    - criar: { nome, email, senha, papel }
-   - papel: { id, papel }            (trocar admin ↔ professora)
+   - papel: { id, papel }            (trocar dono ↔ professora)
    - ativo: { id, ativo }            (desativar/reativar; aplica ban no auth)
    ============================================================ */
 
-type Papel = 'admin' | 'professora';
+type Papel = 'dono' | 'professora';
 
 interface Corpo {
   acao?: 'criar' | 'papel' | 'ativo';
@@ -31,8 +31,8 @@ function erroJson(erro: string, status: number) {
   return Response.json({ erro }, { status });
 }
 
-/** valida o token e devolve o id do chamador se (e só se) for admin */
-async function validaAdmin(
+/** valida o token e devolve o id do chamador se (e só se) for dono */
+async function validaDono(
   supabaseUrl: string,
   anonKey: string,
   token: string
@@ -48,7 +48,7 @@ async function validaAdmin(
     .select('papel')
     .eq('id', data.user.id)
     .single();
-  return perfil?.papel === 'admin' ? data.user.id : null;
+  return perfil?.papel === 'dono' ? data.user.id : null;
 }
 
 export async function POST(request: Request) {
@@ -59,8 +59,8 @@ export async function POST(request: Request) {
 
   const token = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
   if (!token) return erroJson('nao_autenticado', 401);
-  const adminId = await validaAdmin(supabaseUrl, anonKey, token);
-  if (!adminId) return erroJson('Apenas admin pode gerenciar a equipe.', 403);
+  const donoId = await validaDono(supabaseUrl, anonKey, token);
+  if (!donoId) return erroJson('Apenas o dono pode gerenciar a equipe.', 403);
 
   if (!serviceKey) return erroJson('Configure SUPABASE_SERVICE_ROLE_KEY no servidor.', 503);
 
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
     const nome = corpo.nome?.trim();
     const email = corpo.email?.trim().toLowerCase();
     const senha = corpo.senha ?? '';
-    const papel: Papel = corpo.papel === 'admin' ? 'admin' : 'professora';
+    const papel: Papel = corpo.papel === 'dono' ? 'dono' : 'professora';
     if (!nome || !email || senha.length < 6) {
       return erroJson('Informe nome, e-mail e uma senha temporária com 6+ caracteres.', 400);
     }
@@ -105,11 +105,11 @@ export async function POST(request: Request) {
   }
 
   if (corpo.acao === 'papel') {
-    if (!corpo.id || (corpo.papel !== 'admin' && corpo.papel !== 'professora')) {
+    if (!corpo.id || (corpo.papel !== 'dono' && corpo.papel !== 'professora')) {
       return erroJson('parametros_invalidos', 400);
     }
-    if (corpo.id === adminId && corpo.papel !== 'admin') {
-      return erroJson('Você não pode remover o próprio papel de admin.', 400);
+    if (corpo.id === donoId && corpo.papel !== 'dono') {
+      return erroJson('Você não pode remover o próprio papel de dono.', 400);
     }
     const { error } = await admin.from('perfil').update({ papel: corpo.papel }).eq('id', corpo.id);
     if (error) return erroJson(error.message, 500);
@@ -118,7 +118,7 @@ export async function POST(request: Request) {
 
   if (corpo.acao === 'ativo') {
     if (!corpo.id || typeof corpo.ativo !== 'boolean') return erroJson('parametros_invalidos', 400);
-    if (corpo.id === adminId && !corpo.ativo) {
+    if (corpo.id === donoId && !corpo.ativo) {
       return erroJson('Você não pode desativar a própria conta.', 400);
     }
     // ban no auth impede o login; perfil.ativo mostra o estado na lista

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useApp } from '@/lib/appState';
 import { dateFor, ddmm, labelDia, DIAS_ABR } from '@/lib/dates';
 
@@ -15,10 +15,16 @@ const ABAS = [
 ] as const;
 
 export function ShellHeader() {
-  const { unidades, unidade, setUnidadeId, off, setOff, demo, sessao } = useApp();
+  const { repo, unidades, unidade, setUnidadeId, off, setOff, demo, sessao } = useApp();
   const pathname = usePathname();
+  const router = useRouter();
   const mostraDias = pathname === '/' || pathname === '/vagas';
   const hoje = new Date();
+
+  async function sair() {
+    await repo.logout();
+    router.replace('/login');
+  }
 
   return (
     <header className="app-header">
@@ -34,6 +40,11 @@ export function ShellHeader() {
           )}
           <div>{DIAS_ABR[hoje.getDay()]}, {ddmm(hoje)}</div>
         </div>
+        {!demo && (
+          <button className="logout-btn" onClick={sair} aria-label="Sair da conta" title="Sair da conta">
+            ⏻
+          </button>
+        )}
       </div>
 
       <div className="units">
@@ -68,9 +79,12 @@ export function ShellHeader() {
 
 export function ShellNav() {
   const pathname = usePathname();
+  const { sessao } = useApp();
+  // a aba Config é exclusiva do papel dono
+  const abas = ABAS.filter((a) => a.href !== '/config' || sessao?.papel === 'dono');
   return (
     <nav className="app-nav">
-      {ABAS.map((a) => (
+      {abas.map((a) => (
         <Link
           key={a.href}
           href={a.href}

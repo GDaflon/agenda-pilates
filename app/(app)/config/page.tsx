@@ -13,7 +13,13 @@ export default function ConfigPage() {
   const { repo, demo, sessao, unidades, unidade, setUnidadeId, toast, bump, recarregarUnidades } =
     useApp();
   const router = useRouter();
-  const admin = sessao?.papel === 'admin';
+  const dono = sessao?.papel === 'dono';
+
+  // a Config é exclusiva do dono — professoras voltam para a agenda
+  useEffect(() => {
+    if (sessao && !dono) router.replace('/');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessao, dono]);
 
   const [nome, setNome] = useState('');
   const [cap, setCap] = useState(5);
@@ -28,7 +34,7 @@ export default function ConfigPage() {
   });
   const [salvandoUnidade, setSalvandoUnidade] = useState(false);
 
-  // equipe (admin)
+  // equipe (dono)
   const [equipe, setEquipe] = useState<MembroEquipe[] | null>(null);
   const [eqNome, setEqNome] = useState('');
   const [eqEmail, setEqEmail] = useState('');
@@ -38,19 +44,19 @@ export default function ConfigPage() {
   const [eqOcupado, setEqOcupado] = useState<string | null>(null); // id em operação
 
   useEffect(() => {
-    if (!admin) return;
+    if (!dono) return;
     repo
       .listEquipe()
       .then(setEquipe)
       .catch((e) => toast('Erro ao carregar equipe: ' + (e as Error).message));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [admin]);
+  }, [dono]);
 
-  // uso da IA no mês (admin)
+  // uso da IA no mês (dono)
   const [usoIa, setUsoIa] = useState<UsoIaMes | null>(null);
   const [limiteIa, setLimiteIa] = useState(5);
   useEffect(() => {
-    if (!admin) return;
+    if (!dono) return;
     repo.usoIaMes().then(setUsoIa).catch(() => setUsoIa(null));
     if (!demo) {
       fetch('/api/assistente')
@@ -61,7 +67,7 @@ export default function ConfigPage() {
         .catch(() => {});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [admin]);
+  }, [dono]);
 
   async function recarregarEquipe() {
     setEquipe(await repo.listEquipe());
@@ -91,7 +97,7 @@ export default function ConfigPage() {
 
   async function trocarPapel(m: MembroEquipe) {
     setEqOcupado(m.id);
-    const erro = await repo.setPapelUsuario(m.id, m.papel === 'admin' ? 'professora' : 'admin');
+    const erro = await repo.setPapelUsuario(m.id, m.papel === 'dono' ? 'professora' : 'dono');
     if (erro) toast(erro);
     else await recarregarEquipe();
     setEqOcupado(null);
@@ -184,27 +190,19 @@ export default function ConfigPage() {
     }
   }
 
-  async function sair() {
-    await repo.logout();
-    router.replace('/login');
-  }
+  if (sessao && !dono) return null; // redirecionando
 
   return (
     <div>
       <div className="card-box">
         <h2>Conta</h2>
-        <p className="section-note" style={{ margin: '2px 0 8px' }}>
+        <p className="section-note" style={{ margin: '2px 0 0' }}>
           {sessao?.nome} · {sessao ? PAPEL_LABEL[sessao.papel] : ''}
-          {demo ? ' · modo demonstração (nada é salvo)' : ''}
+          {demo ? ' · modo demonstração (nada é salvo)' : ''} — para sair, use o botão ⏻ no topo.
         </p>
-        {!demo && (
-          <button className="btn ghost small" onClick={sair}>
-            Sair da conta
-          </button>
-        )}
       </div>
 
-      {admin && (
+      {dono && (
         <div className="card-box">
           <h2>Unidades</h2>
           <p className="section-note" style={{ margin: '2px 0 8px' }}>
@@ -257,7 +255,7 @@ export default function ConfigPage() {
         </div>
       )}
 
-      {admin && (
+      {dono && (
         <div className="card-box">
           <h2>Equipe</h2>
           <p className="section-note" style={{ margin: '2px 0 8px' }}>
@@ -280,7 +278,7 @@ export default function ConfigPage() {
                     disabled={eqOcupado === m.id}
                     onClick={() => trocarPapel(m)}
                   >
-                    {m.papel === 'admin' ? 'virar professora' : 'virar admin'}
+                    {m.papel === 'dono' ? 'virar professora' : 'virar dono(a)'}
                   </button>
                   <button
                     className={`mini-plain ${m.ativo ? 'danger' : ''}`}
@@ -317,7 +315,7 @@ export default function ConfigPage() {
             onChange={(e) => setEqSenha(e.target.value)}
           />
           <div className="seg" style={{ marginTop: 6 }}>
-            {(['professora', 'admin'] as Papel[]).map((p) => (
+            {(['professora', 'dono'] as Papel[]).map((p) => (
               <button key={p} className={eqPapel === p ? 'active' : ''} onClick={() => setEqPapel(p)}>
                 {PAPEL_LABEL[p]}
               </button>
@@ -333,7 +331,7 @@ export default function ConfigPage() {
         </div>
       )}
 
-      {admin && (
+      {dono && (
         <div className="card-box">
           <h2>Uso da IA (mês)</h2>
           <p className="section-note" style={{ margin: '2px 0 10px' }}>
@@ -380,7 +378,7 @@ export default function ConfigPage() {
         </div>
       )}
 
-      {admin && unidade && (
+      {dono && unidade && (
         <>
           <div className="card-box">
             <h2>Unidade selecionada</h2>
@@ -433,16 +431,6 @@ export default function ConfigPage() {
             )}
           </div>
         </>
-      )}
-
-      {!admin && (
-        <div className="card-box">
-          <h2>Configurações</h2>
-          <p className="section-note" style={{ margin: '2px 0 0' }}>
-            Edição de unidades e grade é restrita ao dono. Professores podem cadastrar alunos e
-            marcar/desmarcar aulas normalmente.
-          </p>
-        </div>
       )}
 
       <div className="card-box">

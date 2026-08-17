@@ -48,7 +48,7 @@ export interface AgendaRepo {
   ): Promise<void>;
   proximasDoAluno(alunoId: string): Promise<ProximaAula[]>;
 
-  // configuração (admin)
+  // configuração (dono)
   grade(unidadeId: string): Promise<GradeItem[]>;
   toggleGrade(unidadeId: string, dia: number, hora: number, ativo: boolean): Promise<void>;
   salvarUnidade(u: Unidade): Promise<void>;
@@ -56,13 +56,13 @@ export interface AgendaRepo {
   /** Desativa a unidade (some das listas; histórico preservado). */
   excluirUnidade(id: string): Promise<void>;
 
-  // equipe (admin) — no Supabase passa pela rota /api/usuarios (service role)
+  // equipe (dono) — no Supabase passa pela rota /api/usuarios (service role)
   listEquipe(): Promise<MembroEquipe[]>;
   criarUsuario(p: { nome: string; email: string; senha: string; papel: Papel }): Promise<string | null>; // null = ok
   setPapelUsuario(id: string, papel: Papel): Promise<string | null>;
   setAtivoUsuario(id: string, ativo: boolean): Promise<string | null>;
 
-  // uso da IA (card na Config, admin)
+  // uso da IA (card na Config, dono)
   usoIaMes(): Promise<UsoIaMes>;
 
   // tempo real
