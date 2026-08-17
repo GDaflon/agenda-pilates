@@ -27,6 +27,7 @@ export interface AgendaRepo {
     hora: number;
     alunoId: string;
     fixo?: boolean;
+    origem?: 'manual' | 'assistente';
   }): Promise<ResultadoMarcacao>;
   setStatus(reservaId: string, status: StatusReserva): Promise<void>;
   /** Cancela; se origem = fixo, registra ausência do dia (vaga liberada só na data). */
@@ -59,6 +60,8 @@ export interface AgendaRepo {
   login(email: string, senha: string): Promise<string | null>; // null = ok, string = erro
   logout(): Promise<void>;
   sessionInfo(): Promise<Sessao | null>;
+  /** Access token do usuário logado (para chamar as rotas /api com RLS). */
+  accessToken?(): Promise<string | null>;
 }
 
 export function isDemoMode(): boolean {

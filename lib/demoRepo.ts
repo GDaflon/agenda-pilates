@@ -383,6 +383,7 @@ export class DemoRepo implements AgendaRepo {
     hora: number;
     alunoId: string;
     fixo?: boolean;
+    origem?: 'manual' | 'assistente';
   }): Promise<ResultadoMarcacao> {
     await espera();
     const s = st();
@@ -433,7 +434,7 @@ export class DemoRepo implements AgendaRepo {
         hora: p.hora,
         alunoId: p.alunoId,
         tipo_no_dia: aluno.tipo,
-        origem: 'manual',
+        origem: p.origem ?? 'manual',
         status: 'reservado',
       });
     }

@@ -9,6 +9,7 @@ const ABAS = [
   { href: '/', ico: '📅', lbl: 'Agenda' },
   { href: '/mes', ico: '🗓️', lbl: 'Mês' },
   { href: '/vagas', ico: '📣', lbl: 'Vagas' },
+  { href: '/assistente', ico: '✨', lbl: 'Assistente' },
   { href: '/alunos', ico: '👥', lbl: 'Alunos' },
   { href: '/config', ico: '⚙️', lbl: 'Config' },
 ] as const;

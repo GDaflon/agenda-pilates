@@ -293,14 +293,16 @@ export class SupabaseRepo implements AgendaRepo {
     hora: number;
     alunoId: string;
     fixo?: boolean;
+    origem?: 'manual' | 'assistente';
   }): Promise<ResultadoMarcacao> {
-    const fn = p.fixo ? 'criar_fixo' : 'marcar_reserva';
-    const { error } = await sb().rpc(fn, {
+    const params: Record<string, string> = {
       p_unidade: p.unidadeId,
       p_data: p.dataISO,
       p_hora: horaSql(p.hora),
       p_aluno: p.alunoId,
-    });
+    };
+    if (!p.fixo && p.origem) params.p_origem = p.origem;
+    const { error } = await sb().rpc(p.fixo ? 'criar_fixo' : 'marcar_reserva', params);
     if (error) return { ok: false, erro: traduzErro(error.message) };
     return { ok: true };
   }
@@ -454,6 +456,11 @@ export class SupabaseRepo implements AgendaRepo {
 
   async logout(): Promise<void> {
     await sb().auth.signOut();
+  }
+
+  async accessToken(): Promise<string | null> {
+    const { data } = await sb().auth.getSession();
+    return data.session?.access_token ?? null;
   }
 
   async sessionInfo(): Promise<Sessao | null> {
