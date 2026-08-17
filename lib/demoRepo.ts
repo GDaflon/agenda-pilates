@@ -13,6 +13,7 @@ import {
   StatusReserva,
   TipoAluno,
   Unidade,
+  UsoIaMes,
 } from './types';
 import { agoraMin, dataDoMes, dateFor, diaSemanaDe, diasNoMes, iso } from './dates';
 import { norm } from './text';
@@ -614,6 +615,12 @@ export class DemoRepo implements AgendaRepo {
     if (m.id === 'p-1' && !ativo) return 'Você não pode desativar a própria conta.';
     m.ativo = ativo;
     return null;
+  }
+
+  async usoIaMes(): Promise<UsoIaMes> {
+    await espera(40);
+    // demo: dados fictícios só para o card ter cara de uso real
+    return { comandos: 37, tokensEntrada: 58200, tokensSaida: 9140, custoUsd: 0.1039 };
   }
 
   onReservasChange(cb: () => void): () => void {

@@ -42,7 +42,7 @@ update perfil set papel = 'admin', nome = 'Nome da Mãe'
 
 3. As **professoras** você cria pelo próprio app: **Config → Equipe** (só admin) — nome, e-mail, senha temporária e papel. Lá também dá para trocar papel e desativar o acesso. (Precisa da `SUPABASE_SERVICE_ROLE_KEY` no passo 3.)
 
-> Já rodou o schema antigo? Rode também os arquivos de [`supabase/migrations/`](supabase/migrations/) na ordem (002 = grade nas meias horas, 003 = coluna `ativo` do perfil).
+> Já rodou o schema antigo? Rode também os arquivos de [`supabase/migrations/`](supabase/migrations/) na ordem (002 = grade nas meias horas, 003 = coluna `ativo` do perfil, 004 = tabela `uso_ia` do assistente).
 
 ### 3. Variáveis de ambiente
 
@@ -59,7 +59,13 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...
 ANTHROPIC_API_KEY=sk-ant-...
 # opcional; padrão: claude-haiku-4-5 (rápido/barato)
 ANTHROPIC_MODEL=claude-haiku-4-5
+# teto mensal de gasto com a IA em US$ (padrão 5) — ao atingir, o chat pausa
+IA_LIMITE_MENSAL_USD=5
 ```
+
+(O arquivo [`.env.example`](.env.example) tem o modelo completo.) Cada resposta da IA grava tokens
+e custo na tabela `uso_ia`; o card **Config → Uso da IA** (admin) mostra o consumo do mês com
+barra de progresso, e o assistente pausa sozinho ao atingir o limite.
 
 Sem `ANTHROPIC_API_KEY` o app continua funcionando — a aba Assistente cai num parser local simples e avisa na tela. (Remova/comente o `NEXT_PUBLIC_DEMO=1`.) Rode `npm run dev` e faça login — pronto, dados reais.
 

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/lib/appState';
 import { DIAS_LONGO, horaFmt } from '@/lib/dates';
-import { GradeItem, MembroEquipe, PAPEL_LABEL, Papel } from '@/lib/types';
+import { GradeItem, MembroEquipe, PAPEL_LABEL, Papel, UsoIaMes } from '@/lib/types';
 
 // passos de 30min, de 05:00 a 21:30 (minutos do dia)
 const HORAS_POSSIVEIS = Array.from({ length: (21 * 60 + 30 - 5 * 60) / 30 + 1 }, (_, i) => 5 * 60 + i * 30);
@@ -43,6 +43,23 @@ export default function ConfigPage() {
       .listEquipe()
       .then(setEquipe)
       .catch((e) => toast('Erro ao carregar equipe: ' + (e as Error).message));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [admin]);
+
+  // uso da IA no mês (admin)
+  const [usoIa, setUsoIa] = useState<UsoIaMes | null>(null);
+  const [limiteIa, setLimiteIa] = useState(5);
+  useEffect(() => {
+    if (!admin) return;
+    repo.usoIaMes().then(setUsoIa).catch(() => setUsoIa(null));
+    if (!demo) {
+      fetch('/api/assistente')
+        .then((r) => r.json())
+        .then((j) => {
+          if (typeof j.limiteUsd === 'number') setLimiteIa(j.limiteUsd);
+        })
+        .catch(() => {});
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [admin]);
 
@@ -313,6 +330,53 @@ export default function ConfigPage() {
           >
             {eqCriando ? 'Criando…' : '＋ Criar usuário'}
           </button>
+        </div>
+      )}
+
+      {admin && (
+        <div className="card-box">
+          <h2>Uso da IA (mês)</h2>
+          <p className="section-note" style={{ margin: '2px 0 10px' }}>
+            Consumo do ✨ Assistente no mês corrente. Limite: US$ {limiteIa.toFixed(2)}
+            {demo ? ' · demo: dados fictícios' : ' (env IA_LIMITE_MENSAL_USD)'}.
+          </p>
+          {!usoIa ? (
+            <div className="skel" style={{ height: 60 }} />
+          ) : (
+            <>
+              <div className="uso-grid">
+                <div className="uso-stat">
+                  <b>{usoIa.comandos}</b>
+                  <span>comandos</span>
+                </div>
+                <div className="uso-stat">
+                  <b>{(usoIa.tokensEntrada + usoIa.tokensSaida).toLocaleString('pt-BR')}</b>
+                  <span>tokens</span>
+                </div>
+                <div className="uso-stat">
+                  <b>US$ {usoIa.custoUsd.toFixed(2)}</b>
+                  <span>gasto</span>
+                </div>
+              </div>
+              <div
+                className="uso-bar"
+                role="progressbar"
+                aria-valuenow={Math.round((usoIa.custoUsd / Math.max(limiteIa, 0.01)) * 100)}
+                aria-valuemin={0}
+                aria-valuemax={100}
+              >
+                <i
+                  style={{
+                    width: `${Math.min(100, (usoIa.custoUsd / Math.max(limiteIa, 0.01)) * 100)}%`,
+                  }}
+                />
+              </div>
+              <p className="section-note" style={{ margin: '6px 0 0' }}>
+                US$ {usoIa.custoUsd.toFixed(2)} de US$ {limiteIa.toFixed(2)} — ao atingir o limite,
+                o assistente pausa até o mês virar (ou o limite subir).
+              </p>
+            </>
+          )}
         </div>
       )}
 

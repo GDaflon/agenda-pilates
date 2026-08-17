@@ -96,6 +96,19 @@ create table if not exists ausencia_fixo (
   unique (vinculo_fixo_id, data)
 );
 
+-- registro de uso da IA (aba Assistente); escrita só via service role
+create table if not exists uso_ia (
+  id             uuid primary key default gen_random_uuid(),
+  criado_em      timestamptz not null default now(),
+  usuario_id     uuid references perfil(id) on delete set null,
+  modelo         text not null,
+  tokens_entrada int not null default 0,
+  tokens_saida   int not null default 0,
+  custo_usd      numeric(10, 6) not null default 0
+);
+
+create index if not exists uso_ia_criado_em on uso_ia (criado_em);
+
 -- ---------- Perfil automático no signup ----------
 create or replace function handle_new_user()
 returns trigger
@@ -133,6 +146,7 @@ alter table grade_horario enable row level security;
 alter table vinculo_fixo  enable row level security;
 alter table reserva       enable row level security;
 alter table ausencia_fixo enable row level security;
+alter table uso_ia        enable row level security;
 
 -- equipe lê tudo; escrita operacional para equipe; estrutura só admin
 drop policy if exists unidade_select on unidade;
@@ -161,6 +175,10 @@ create policy reserva_all on reserva for all to authenticated using (is_team()) 
 
 drop policy if exists ausencia_all on ausencia_fixo;
 create policy ausencia_all on ausencia_fixo for all to authenticated using (is_team()) with check (is_team());
+
+-- equipe lê o uso da IA; escrita só via service role (sem policy de insert)
+drop policy if exists uso_ia_select on uso_ia;
+create policy uso_ia_select on uso_ia for select to authenticated using (is_team());
 
 -- ---------- Funções de negócio ----------
 

@@ -14,8 +14,10 @@ import {
   StatusReserva,
   TipoAluno,
   Unidade,
+  UsoIaMes,
 } from './types';
 import { dataDoMes, diaSemanaDe, diasNoMes, horaNum, horaSql } from './dates';
+import { inicioDoMesISO } from './precosIa';
 
 /* ============================================================
    Repositório Supabase — produção.
@@ -481,6 +483,22 @@ export class SupabaseRepo implements AgendaRepo {
 
   async setAtivoUsuario(id: string, ativo: boolean): Promise<string | null> {
     return this.apiUsuarios({ acao: 'ativo', id, ativo });
+  }
+
+  async usoIaMes(): Promise<UsoIaMes> {
+    const { data, error } = await sb()
+      .from('uso_ia')
+      .select('tokens_entrada,tokens_saida,custo_usd')
+      .gte('criado_em', inicioDoMesISO());
+    if (error) throw error;
+    type Row = { tokens_entrada: number; tokens_saida: number; custo_usd: number };
+    const linhas = (data ?? []) as Row[];
+    return {
+      comandos: linhas.length,
+      tokensEntrada: linhas.reduce((s, r) => s + r.tokens_entrada, 0),
+      tokensSaida: linhas.reduce((s, r) => s + r.tokens_saida, 0),
+      custoUsd: linhas.reduce((s, r) => s + Number(r.custo_usd), 0),
+    };
   }
 
   onReservasChange(cb: () => void): () => void {

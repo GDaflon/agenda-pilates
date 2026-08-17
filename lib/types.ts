@@ -73,6 +73,14 @@ export interface Sessao {
   email?: string;
 }
 
+/** resumo do mês corrente do uso da IA (card na Config, admin) */
+export interface UsoIaMes {
+  comandos: number;
+  tokensEntrada: number;
+  tokensSaida: number;
+  custoUsd: number;
+}
+
 /** membro da equipe listado no card Equipe (Config, admin) */
 export interface MembroEquipe {
   id: string;

@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { SupabaseClient, createClient } from '@supabase/supabase-js';
+import { custoUsd, inicioDoMesISO, limiteMensalUsd } from '@/lib/precosIa';
 
 /* ============================================================
    POST /api/assistente — assistente de agenda com Claude API.
@@ -21,7 +22,20 @@ const MAX_RODADAS = 4; // rodadas de tool use por comando
 const MAX_HISTORICO = 10; // mensagens de histórico aceitas do front
 
 export async function GET() {
-  return Response.json({ configurado: !!process.env.ANTHROPIC_API_KEY });
+  return Response.json({
+    configurado: !!process.env.ANTHROPIC_API_KEY,
+    limiteUsd: limiteMensalUsd(),
+  });
+}
+
+/** soma o custo do mês corrente na uso_ia (via service role) */
+async function gastoDoMes(servico: SupabaseClient): Promise<number> {
+  const { data, error } = await servico
+    .from('uso_ia')
+    .select('custo_usd')
+    .gte('criado_em', inicioDoMesISO());
+  if (error) return 0;
+  return (data ?? []).reduce((s, r) => s + Number(r.custo_usd), 0);
 }
 
 interface MsgChat {
@@ -362,6 +376,37 @@ export async function POST(request: Request) {
     `- Nunca invente dados de agenda ou de alunos — use sempre as ferramentas.\n` +
     `- Antes de marcar ou desmarcar, localize o aluno com buscar_aluno; só cadastre aluno novo (nome_novo) se a busca não encontrar ninguém compatível.`;
 
+  // ---- controle de custo (zero surpresa) ----
+  // service role SÓ para a tabela uso_ia; a agenda continua no client com RLS
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const servico = serviceKey
+    ? createClient(supabaseUrl, serviceKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      })
+    : null;
+  const limite = limiteMensalUsd();
+  let gastoMes = servico ? await gastoDoMes(servico) : 0;
+  if (servico && gastoMes >= limite) {
+    return Response.json({
+      resposta: `Limite mensal da IA atingido (US$ ${gastoMes.toFixed(2)} de US$ ${limite.toFixed(2)}) — ajuste IA_LIMITE_MENSAL_USD na Vercel para ampliar.`,
+      houveAcao: false,
+      limiteAtingido: true,
+    });
+  }
+
+  const registraUso = async (usage: Anthropic.Usage) => {
+    const custo = custoUsd(MODELO, usage.input_tokens, usage.output_tokens);
+    gastoMes += custo;
+    if (!servico) return;
+    await servico.from('uso_ia').insert({
+      usuario_id: userData.user.id,
+      modelo: MODELO,
+      tokens_entrada: usage.input_tokens,
+      tokens_saida: usage.output_tokens,
+      custo_usd: custo,
+    });
+  };
+
   const client = new Anthropic();
   const mensagens: Anthropic.MessageParam[] = historico.map((m) => ({
     role: m.role,
@@ -378,13 +423,18 @@ export async function POST(request: Request) {
         tools: FERRAMENTAS,
         messages: mensagens,
       });
+      await registraUso(resposta.usage);
 
       if (resposta.stop_reason !== 'tool_use') {
-        const texto = resposta.content
+        let texto = resposta.content
           .filter((b): b is Anthropic.TextBlock => b.type === 'text')
           .map((b) => b.text)
           .join('\n')
           .trim();
+        // entre 80% e 100% do limite: aviso discreto do consumo
+        if (servico && limite > 0 && gastoMes >= limite * 0.8 && gastoMes < limite) {
+          texto += `\n\n💸 Uso da IA no mês: US$ ${gastoMes.toFixed(2)} de US$ ${limite.toFixed(2)}.`;
+        }
         return Response.json({ resposta: texto || 'Certo!', houveAcao });
       }
 

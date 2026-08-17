@@ -11,6 +11,7 @@ import {
   StatusReserva,
   TipoAluno,
   Unidade,
+  UsoIaMes,
 } from './types';
 
 export type ResultadoMarcacao = { ok: true } | { ok: false; erro: string };
@@ -60,6 +61,9 @@ export interface AgendaRepo {
   criarUsuario(p: { nome: string; email: string; senha: string; papel: Papel }): Promise<string | null>; // null = ok
   setPapelUsuario(id: string, papel: Papel): Promise<string | null>;
   setAtivoUsuario(id: string, ativo: boolean): Promise<string | null>;
+
+  // uso da IA (card na Config, admin)
+  usoIaMes(): Promise<UsoIaMes>;
 
   // tempo real
   onReservasChange(cb: () => void): () => void;

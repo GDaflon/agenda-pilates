@@ -23,7 +23,8 @@ App Next.js 16 (App Router) + Supabase. Identidade visual em `branding/BRAND.md`
 - `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` — produção; sem elas (ou com `NEXT_PUBLIC_DEMO=1`) o app roda em demo.
 - `SUPABASE_SERVICE_ROLE_KEY` — server-only; usada só por `app/api/usuarios` (Config → Equipe). Nunca `NEXT_PUBLIC`.
 - `ANTHROPIC_API_KEY` — server-only; ativa a IA da aba ✨ Assistente (`app/api/assistente`). Sem ela a aba usa o parser local `lib/assistenteLocal.ts`.
-- `ANTHROPIC_MODEL` — opcional, default `claude-haiku-4-5`.
+- `ANTHROPIC_MODEL` — opcional, default `claude-haiku-4-5`. Preços por modelo em `lib/precosIa.ts` — atualize lá se trocar.
+- `IA_LIMITE_MENSAL_USD` — teto mensal do assistente em US$ (default 5). Cada resposta da API grava tokens+custo na tabela `uso_ia` (insert só via service role; equipe lê). Ao atingir o limite, `/api/assistente` responde no chat sem chamar a API; entre 80% e 100% anexa aviso de consumo. Card "Uso da IA" na Config (admin).
 
 ## Segurança das rotas /api
 
