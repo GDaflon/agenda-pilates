@@ -9,11 +9,14 @@ interface Msg {
   texto: string;
 }
 
-const CHIPS = [
-  'Quais vagas tem amanhã de manhã?',
-  'Marca a Maria amanhã às 7h30 no Centro',
-  'Desmarca o João de hoje 18h30',
-];
+/** chips de sugestão com a unidade real selecionada na tela */
+function chipsDe(unidadeNome: string | undefined): string[] {
+  return [
+    'Quais vagas tem amanhã de manhã?',
+    `Marca a Maria amanhã às 7h30${unidadeNome ? ` na ${unidadeNome}` : ''}`,
+    'Desmarca o João de hoje 18h30',
+  ];
+}
 
 /* Web Speech API (ditado) — sem tipos oficiais no TS */
 interface RecognitionLike {
@@ -158,7 +161,7 @@ export default function AssistentePage() {
       </div>
 
       <div className="chips-sugg">
-        {CHIPS.map((c) => (
+        {chipsDe(unidade?.nome).map((c) => (
           <button key={c} className="f-chip" disabled={pensando} onClick={() => enviar(c)}>
             {c}
           </button>
