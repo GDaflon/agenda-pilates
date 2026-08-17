@@ -101,6 +101,9 @@ export default function AgendaPage() {
                   <Badge tipo={r.tipo_no_dia} />
                   <span className="nm">{r.aluno.nome}</span>
                   {r.origem === 'fixo' && <span className="origin-tag">fixo</span>}
+                  {r.origem === 'assistente' && (
+                    <span className="origin-tag" title="marcado pelo assistente">✨</span>
+                  )}
                   {r.status === 'checkin' && <span className="st-ico ok">✔</span>}
                   {r.status === 'falta' && <span className="st-ico no">✘</span>}
                 </button>

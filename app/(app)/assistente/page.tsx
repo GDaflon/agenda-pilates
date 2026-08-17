@@ -11,7 +11,7 @@ interface Msg {
 
 const CHIPS = [
   'Quais vagas tem amanhã de manhã?',
-  'Marca a Maria amanhã às 7h30',
+  'Marca a Maria amanhã às 7h30 no Centro',
   'Desmarca o João de hoje 18h30',
 ];
 
