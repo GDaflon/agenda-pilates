@@ -20,6 +20,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  // comportamento de app instalado: iOS não pode "prender" zoom ao focar campos
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: 'cover',
   themeColor: '#C0267E',
 };

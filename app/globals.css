@@ -33,6 +33,17 @@
 
 html {
   font-size: 16px;
+  /* iOS Safari: sem auto-ajuste de fonte que bagunça o layout */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* iOS Safari dá zoom automático (e ele "gruda") ao focar campos com fonte
+   menor que 16px — nenhum campo focável pode ficar abaixo disso */
+input,
+select,
+textarea {
+  font-size: max(16px, 1em);
 }
 
 body {
@@ -567,8 +578,8 @@ body {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 12px;
-  padding: 11px 13px;
-  font-size: 0.95rem;
+  padding: 10px 12px; /* compensa a fonte maior (16px mínimo p/ iOS não dar zoom) */
+  font-size: 1rem;
   background: var(--card);
   outline: none;
 }
