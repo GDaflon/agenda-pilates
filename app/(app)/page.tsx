@@ -1,15 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useApp } from '@/lib/appState';
-import { agoraMin, dateFor, horaFmt, iso } from '@/lib/dates';
+import { agoraMin, dateFor, DIAS_JANELA, horaFmt, iso } from '@/lib/dates';
 import { Reserva, SlotDia } from '@/lib/types';
 import Badge from '@/components/Badge';
 import MarcarSheet from '@/components/MarcarSheet';
 import ReservaSheet from '@/components/ReservaSheet';
 
 export default function AgendaPage() {
-  const { repo, unidade, off, refreshKey, toast } = useApp();
+  const { repo, unidade, off, setOff, refreshKey, toast } = useApp();
   const [slots, setSlots] = useState<SlotDia[] | null>(null);
   const [marcarHora, setMarcarHora] = useState<number | null>(null);
   const [reservaSel, setReservaSel] = useState<Reserva | null>(null);
@@ -17,6 +17,25 @@ export default function AgendaPage() {
 
   const dataISO = iso(dateFor(off));
   const agora = agoraMin();
+  const toqueRef = useRef<{ x: number; y: number } | null>(null);
+
+  // Swipe lateral na lista troca o dia. Nunca chamamos preventDefault e só
+  // reagimos a gestos claramente horizontais, então o scroll vertical fica intacto.
+  function aoTocar(e: React.TouchEvent) {
+    const t = e.changedTouches[0];
+    toqueRef.current = { x: t.clientX, y: t.clientY };
+  }
+  function aoSoltar(e: React.TouchEvent) {
+    const ini = toqueRef.current;
+    toqueRef.current = null;
+    if (!ini) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - ini.x;
+    const dy = t.clientY - ini.y;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 2) return; // gesto vertical
+    const novo = off - Math.sign(dx); // arrastar para a esquerda avança o dia
+    if (novo >= 0 && novo < DIAS_JANELA) setOff(novo);
+  }
 
   useEffect(() => {
     if (!unidade) return;
@@ -60,7 +79,7 @@ export default function AgendaPage() {
   const slotMarcar = slots.find((s) => s.hora === marcarHora);
 
   return (
-    <div>
+    <div onTouchStart={aoTocar} onTouchEnd={aoSoltar}>
       {slots.length > 0 ? (
         <div className="summary">
           <span>

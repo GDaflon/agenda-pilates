@@ -17,7 +17,7 @@ import {
   Unidade,
   UsoIaMes,
 } from './types';
-import { agoraMin, dataDoMes, dateFor, diaSemanaDe, diasNoMes, iso } from './dates';
+import { agoraMin, dataDoMes, DIAS_JANELA, dateFor, diaSemanaDe, diasNoMes, iso } from './dates';
 import { norm } from './text';
 
 /* ============================================================
@@ -177,9 +177,9 @@ class DemoState {
     // materializa hoje..+13 (duas semanas de demo)
     for (let off = 0; off <= 13; off++) this.materializarDia(off);
 
-    // avulsos de exemplo nos 3 primeiros dias
+    // avulsos de exemplo em toda a janela navegável (hoje + 7)
     const agora = agoraMin();
-    for (let off = 0; off <= 2; off++) {
+    for (let off = 0; off < DIAS_JANELA; off++) {
       const data = iso(dateFor(off));
       const wd = dateFor(off).getDay();
       for (const u of this.unidades) {

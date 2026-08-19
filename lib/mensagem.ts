@@ -17,6 +17,10 @@ export function linhasVagas(slots: SlotDia[], off: number): LinhaVaga[] {
 
 export function buildMensagem(unidadeNome: string, off: number, slots: SlotDia[]): string {
   const ls = linhasVagas(slots, off);
+  // dia sem turma na grade (domingo, feriado desligado): não é "lotado", é fechado
+  if (!slots.length) {
+    return `🧘‍♀️ *Natty Pilates ${unidadeNome}*\n\nNão temos turmas ${nomeDia(off)}. 🌿\nQualquer novidade eu aviso por aqui.`;
+  }
   if (!ls.length && off === 0 && slots.length > 0) {
     return `🧘‍♀️ *Natty Pilates ${unidadeNome}*\n\nEncerramos as turmas de hoje! 🙏\nAmanhã cedo mando os horários com vaga.`;
   }

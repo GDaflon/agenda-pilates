@@ -2,6 +2,9 @@ export const DIAS_ABR = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 export const DIAS_LONGO = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 export const MESES_LONGO = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
+/** Janela navegável nas abas Agenda e Vagas: hoje + 7 dias. */
+export const DIAS_JANELA = 8;
+
 /** Data local com offset de dias a partir de hoje (meio-dia para evitar bordas de fuso). */
 export function dateFor(off: number): Date {
   const d = new Date();
