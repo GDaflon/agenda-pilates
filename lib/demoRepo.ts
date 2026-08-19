@@ -154,13 +154,14 @@ class DemoState {
       for (let wd = 0; wd < 7; wd++) {
         const ocupadosDoDia = new Set<string>();
         for (const h of gradeHoras(wd)) {
+          // horários populares chegam a lotar, para o demo mostrar turma cheia e encaixe
           const alvo = POPULARES.includes(h)
-            ? 3 + Math.floor(this.rng() * 3)
+            ? 3 + Math.floor(this.rng() * 4)
             : Math.floor(this.rng() * 3);
           const lista: string[] = [];
           let tent = 0;
           const pool = mensalistas.get(u.id)!;
-          while (lista.length < Math.min(alvo, 5) && tent++ < 40) {
+          while (lista.length < Math.min(alvo, u.capacidade_padrao) && tent++ < 40) {
             const a = this.pick(pool);
             const k = a.id + '|' + wd;
             if (!ocupadosDoDia.has(k) && !lista.includes(a.id)) {
