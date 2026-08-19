@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/lib/appState';
 import { DIAS_LONGO, horaFmt } from '@/lib/dates';
-import { GradeItem, MembroEquipe, PAPEL_LABEL, Papel, UsoIaMes } from '@/lib/types';
+import { CAPACIDADE_PADRAO, GradeItem, MembroEquipe, PAPEL_LABEL, Papel, UsoIaMes } from '@/lib/types';
+import BottomSheet from '@/components/BottomSheet';
 
 // passos de 30min, de 05:00 a 21:30 (minutos do dia)
 const HORAS_POSSIVEIS = Array.from({ length: (21 * 60 + 30 - 5 * 60) / 30 + 1 }, (_, i) => 5 * 60 + i * 30);
@@ -22,9 +23,9 @@ export default function ConfigPage() {
   }, [sessao, dono]);
 
   const [nome, setNome] = useState('');
-  const [cap, setCap] = useState(5);
+  const [cap, setCap] = useState(CAPACIDADE_PADRAO);
   const [novaNome, setNovaNome] = useState('');
-  const [novaCap, setNovaCap] = useState(5);
+  const [novaCap, setNovaCap] = useState(CAPACIDADE_PADRAO);
   const [criando, setCriando] = useState(false);
   const [confirmaExcluir, setConfirmaExcluir] = useState<string | null>(null);
   const [grade, setGrade] = useState<GradeItem[] | null>(null);
@@ -33,6 +34,7 @@ export default function ConfigPage() {
     return d === 0 ? 1 : d;
   });
   const [salvandoUnidade, setSalvandoUnidade] = useState(false);
+  const [horaSel, setHoraSel] = useState<number | null>(null); // stepper de capacidade
 
   // equipe (dono)
   const [equipe, setEquipe] = useState<MembroEquipe[] | null>(null);
@@ -148,7 +150,7 @@ export default function ConfigPage() {
       await recarregarUnidades();
       setUnidadeId(u.id);
       setNovaNome('');
-      setNovaCap(5);
+      setNovaCap(CAPACIDADE_PADRAO);
       toast(`Unidade "${u.nome}" criada ✓ — agora ligue os horários na grade`);
     } catch (e) {
       toast('Erro: ' + (e as Error).message);
@@ -167,13 +169,48 @@ export default function ConfigPage() {
     }
   }
 
-  function ativa(h: number): boolean {
-    return !!grade?.find((g) => g.dia_semana === dia && g.hora === h && g.ativo);
+  function itemGrade(h: number): GradeItem | undefined {
+    return grade?.find((g) => g.dia_semana === dia && g.hora === h);
   }
 
-  async function toggle(h: number) {
+  function ativa(h: number): boolean {
+    const g = itemGrade(h);
+    return !!g?.ativo;
+  }
+
+  /** null = herda o padrão da unidade */
+  function capacidadeDe(h: number): number | null {
+    return itemGrade(h)?.capacidade ?? null;
+  }
+
+  const capPadraoUnidade = unidade?.capacidade_padrao ?? CAPACIDADE_PADRAO;
+
+  async function salvarCapacidade(h: number, valor: number | null) {
+    if (!unidade) return;
+    // otimista
+    setGrade((g) => {
+      if (!g) return g;
+      const item = g.find((x) => x.dia_semana === dia && x.hora === h);
+      if (item) return g.map((x) => (x === item ? { ...x, capacidade: valor } : x));
+      return [...g, { dia_semana: dia, hora: h, capacidade: valor, ativo: true }];
+    });
+    try {
+      await repo.setCapacidadeGrade(unidade.id, dia, h, valor);
+      bump();
+    } catch (e) {
+      toast('Erro: ' + (e as Error).message);
+      repo.grade(unidade.id).then(setGrade);
+    }
+  }
+
+  function tocarHora(h: number) {
+    // horário ligado abre o ajuste de capacidade; desligado, liga na hora
+    if (ativa(h)) setHoraSel(h);
+    else toggle(h, true);
+  }
+
+  async function toggle(h: number, nova: boolean) {
     if (!unidade || !grade) return;
-    const nova = !ativa(h);
     // otimista
     setGrade((g) => {
       if (!g) return g;
@@ -401,7 +438,8 @@ export default function ConfigPage() {
           <div className="card-box">
             <h2>Grade de horários — {unidade.nome}</h2>
             <p className="section-note" style={{ margin: '2px 0 4px' }}>
-              Toque para ligar/desligar um horário no dia da semana escolhido.
+              Toque num horário desligado para ligar. Toque num ligado para ajustar a capacidade
+              daquela turma — sem ajuste, ela usa o padrão da unidade ({capPadraoUnidade}).
             </p>
             <div className="filters" style={{ margin: '8px 0 2px' }}>
               {[1, 2, 3, 4, 5, 6, 0].map((d) => (
@@ -418,20 +456,82 @@ export default function ConfigPage() {
               <div className="skel" style={{ height: 120 }} />
             ) : (
               <div className="hour-grid">
-                {HORAS_POSSIVEIS.map((h) => (
-                  <button
-                    key={h}
-                    className={`hour-toggle ${ativa(h) ? 'on' : ''}`}
-                    onClick={() => toggle(h)}
-                  >
-                    {horaFmt(h)}
-                  </button>
-                ))}
+                {HORAS_POSSIVEIS.map((h) => {
+                  const capH = capacidadeDe(h);
+                  return (
+                    <button
+                      key={h}
+                      className={`hour-toggle ${ativa(h) ? 'on' : ''}`}
+                      onClick={() => tocarHora(h)}
+                    >
+                      {horaFmt(h)}
+                      {ativa(h) && capH != null && <em className="hour-cap">{capH}</em>}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
         </>
       )}
+
+      <BottomSheet aberto={horaSel != null} onFechar={() => setHoraSel(null)}>
+        {horaSel != null && (
+          <>
+            <div className="sheet-title">Turma das {horaFmt(horaSel)}</div>
+            <div className="sheet-sub">
+              {DIAS_LONGO[dia]} · {unidade?.nome}
+            </div>
+
+            <span className="field-label">Capacidade desta turma</span>
+            <div className="cap-stepper">
+              <button
+                className="cap-btn"
+                aria-label="Diminuir capacidade"
+                disabled={(capacidadeDe(horaSel) ?? capPadraoUnidade) <= 1}
+                onClick={() =>
+                  salvarCapacidade(horaSel, Math.max(1, (capacidadeDe(horaSel) ?? capPadraoUnidade) - 1))
+                }
+              >
+                −
+              </button>
+              <span className="cap-valor">
+                <b>{capacidadeDe(horaSel) ?? capPadraoUnidade}</b>
+                <em>{capacidadeDe(horaSel) == null ? `padrão da unidade` : 'só desta turma'}</em>
+              </span>
+              <button
+                className="cap-btn"
+                aria-label="Aumentar capacidade"
+                disabled={(capacidadeDe(horaSel) ?? capPadraoUnidade) >= 30}
+                onClick={() =>
+                  salvarCapacidade(horaSel, Math.min(30, (capacidadeDe(horaSel) ?? capPadraoUnidade) + 1))
+                }
+              >
+                ＋
+              </button>
+            </div>
+
+            {capacidadeDe(horaSel) != null && (
+              <button className="btn ghost small" onClick={() => salvarCapacidade(horaSel, null)}>
+                Voltar ao padrão da unidade ({capPadraoUnidade})
+              </button>
+            )}
+
+            <button
+              className="btn ghost small danger"
+              onClick={() => {
+                toggle(horaSel, false);
+                setHoraSel(null);
+              }}
+            >
+              Desligar este horário
+            </button>
+            <button className="btn small" onClick={() => setHoraSel(null)}>
+              Pronto
+            </button>
+          </>
+        )}
+      </BottomSheet>
 
       <div className="card-box">
         <h2>Sobre</h2>

@@ -1,6 +1,7 @@
 import type { AgendaRepo, ResultadoMarcacao } from './repo';
 import {
   Aluno,
+  CAPACIDADE_PADRAO,
   DiaMes,
   FixoDoAluno,
   GradeItem,
@@ -65,8 +66,8 @@ function gradeHoras(wd: number): number[] {
 
 class DemoState {
   unidades: Unidade[] = [
-    { id: 'u-centro', nome: 'Centro', capacidade_padrao: 5 },
-    { id: 'u-jardim', nome: 'Jardim', capacidade_padrao: 5 },
+    { id: 'u-centro', nome: 'Centro', capacidade_padrao: CAPACIDADE_PADRAO },
+    { id: 'u-jardim', nome: 'Jardim', capacidade_padrao: CAPACIDADE_PADRAO },
   ];
   alunos: Aluno[] = [];
   equipe: MembroEquipe[] = [
@@ -265,9 +266,16 @@ class DemoState {
     );
   }
 
-  vagas(uid: string, data: string, h: number): number {
+  /** Capacidade efetiva do horário: a da grade prevalece sobre o padrão da unidade. */
+  capacidadeDe(uid: string, wd: number, h: number): number {
     const u = this.unidades.find((x) => x.id === uid)!;
-    return u.capacidade_padrao - this.slotReservas(uid, data, h).length;
+    const g = (this.grade.get(uid) ?? []).find((x) => x.dia_semana === wd && x.hora === h);
+    return g?.capacidade ?? u.capacidade_padrao;
+  }
+
+  vagas(uid: string, data: string, h: number): number {
+    const wd = new Date(data + 'T12:00:00').getDay();
+    return this.capacidadeDe(uid, wd, h) - this.slotReservas(uid, data, h).length;
   }
 
   aluno(id: string): Aluno {
@@ -314,7 +322,7 @@ export class DemoRepo implements AgendaRepo {
     const s = st();
     const wd = new Date(dataISO + 'T12:00:00').getDay();
     const itens = (s.grade.get(unidadeId) ?? []).filter((g) => g.dia_semana === wd && g.ativo);
-    const cap = s.unidades.find((u) => u.id === unidadeId)?.capacidade_padrao ?? 5;
+    const cap = s.unidades.find((u) => u.id === unidadeId)?.capacidade_padrao ?? CAPACIDADE_PADRAO;
     return itens
       .sort((a, b) => a.hora - b.hora)
       .map((g) => {
@@ -336,7 +344,7 @@ export class DemoRepo implements AgendaRepo {
   async resumoMes(unidadeId: string, ano: number, mes: number): Promise<DiaMes[]> {
     await espera();
     const s = st();
-    const capPadrao = s.unidades.find((u) => u.id === unidadeId)?.capacidade_padrao ?? 5;
+    const capPadrao = s.unidades.find((u) => u.id === unidadeId)?.capacidade_padrao ?? CAPACIDADE_PADRAO;
     const gradeAtiva = (s.grade.get(unidadeId) ?? []).filter((g) => g.ativo);
     const nDias = diasNoMes(ano, mes);
 
@@ -568,6 +576,21 @@ export class DemoRepo implements AgendaRepo {
     const item = itens.find((g) => g.dia_semana === dia && g.hora === hora);
     if (item) item.ativo = ativo;
     else itens.push({ dia_semana: dia, hora, capacidade: null, ativo });
+    st().grade.set(unidadeId, itens);
+    this.notify();
+  }
+
+  async setCapacidadeGrade(
+    unidadeId: string,
+    dia: number,
+    hora: number,
+    capacidade: number | null
+  ): Promise<void> {
+    await espera(40);
+    const itens = st().grade.get(unidadeId) ?? [];
+    const item = itens.find((g) => g.dia_semana === dia && g.hora === hora);
+    if (item) item.capacidade = capacidade;
+    else itens.push({ dia_semana: dia, hora, capacidade, ativo: true });
     st().grade.set(unidadeId, itens);
     this.notify();
   }

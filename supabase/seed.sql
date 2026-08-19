@@ -5,8 +5,8 @@
 
 -- unidades do Natty Estúdio Pilates
 insert into unidade (nome, capacidade_padrao) values
-  ('Centro', 5),
-  ('Jardim', 5);
+  ('Centro', 6),
+  ('Jardim', 6);
 
 -- Grade padrão (turmas nas meias horas): seg–sex 05:30–11:30 e 15:30–19:30,
 -- sáb 08:30–11:30, para todas as unidades.

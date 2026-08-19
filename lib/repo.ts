@@ -54,6 +54,13 @@ export interface AgendaRepo {
   // configuração (dono)
   grade(unidadeId: string): Promise<GradeItem[]>;
   toggleGrade(unidadeId: string, dia: number, hora: number, ativo: boolean): Promise<void>;
+  /** Capacidade específica do horário; null volta a usar o padrão da unidade. */
+  setCapacidadeGrade(
+    unidadeId: string,
+    dia: number,
+    hora: number,
+    capacidade: number | null
+  ): Promise<void>;
   salvarUnidade(u: Unidade): Promise<void>;
   criarUnidade(p: { nome: string; capacidade: number }): Promise<Unidade>;
   /** Desativa a unidade (some das listas; histórico preservado). */

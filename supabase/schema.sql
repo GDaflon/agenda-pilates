@@ -21,7 +21,7 @@ exception when duplicate_object then null; end $$;
 create table if not exists unidade (
   id                uuid primary key default gen_random_uuid(),
   nome              text not null,
-  capacidade_padrao int  not null default 5,
+  capacidade_padrao int  not null default 6,
   ativo             boolean not null default true
 );
 

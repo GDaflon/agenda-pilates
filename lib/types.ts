@@ -3,6 +3,9 @@ export type StatusReserva = 'reservado' | 'checkin' | 'falta' | 'cancelado';
 export type OrigemReserva = 'fixo' | 'manual' | 'portal' | 'assistente';
 export type Papel = 'dono' | 'professora';
 
+/** Capacidade padrão de uma turma quando o horário não define a sua. */
+export const CAPACIDADE_PADRAO = 6;
+
 export interface Unidade {
   id: string;
   nome: string;

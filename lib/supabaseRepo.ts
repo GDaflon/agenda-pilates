@@ -439,6 +439,21 @@ export class SupabaseRepo implements AgendaRepo {
     if (error) throw error;
   }
 
+  async setCapacidadeGrade(
+    unidadeId: string,
+    dia: number,
+    hora: number,
+    capacidade: number | null
+  ): Promise<void> {
+    const { error } = await sb()
+      .from('grade_horario')
+      .upsert(
+        { unidade_id: unidadeId, dia_semana: dia, hora: horaSql(hora), capacidade },
+        { onConflict: 'unidade_id,dia_semana,hora' }
+      );
+    if (error) throw error;
+  }
+
   async salvarUnidade(u: Unidade): Promise<void> {
     const { error } = await sb()
       .from('unidade')
