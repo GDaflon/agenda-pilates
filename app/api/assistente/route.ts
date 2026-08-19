@@ -370,6 +370,7 @@ export async function POST(request: Request) {
     `\n\nRegras:\n` +
     `- As turmas começam em passos de 30 minutos (ex.: 07:30). "às 7" normalmente é 07:30 — confirme o horário exato na resposta.\n` +
     `- Tipos de aluno: mensalista, wellhub, totalpass.\n` +
+    `- Convênio e horário fixo são coisas independentes: qualquer aluno (mensalista, Wellhub ou TotalPass) pode ter horário fixo semanal. Nunca diga que fixo é só para mensalista.\n` +
     `- Converta "amanhã", "sexta", "7h30" etc. para data ISO (YYYY-MM-DD) e hora HH:MM antes de chamar ferramentas.\n` +
     `- Responda CURTO, confirmando dia, horário, unidade e vagas restantes.\n` +
     `- Quando algo estiver ambíguo (nome que bate com mais de um aluno, falta de dia, horário ou unidade), PERGUNTE em vez de adivinhar.\n` +

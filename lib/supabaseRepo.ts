@@ -3,6 +3,7 @@ import type { AgendaRepo, ResultadoMarcacao } from './repo';
 import {
   Aluno,
   DiaMes,
+  FixoDoAluno,
   GradeItem,
   ItemMes,
   MembroEquipe,
@@ -16,7 +17,7 @@ import {
   Unidade,
   UsoIaMes,
 } from './types';
-import { dataDoMes, diaSemanaDe, diasNoMes, horaNum, horaSql } from './dates';
+import { dataDoMes, dateFor, diaSemanaDe, diasNoMes, horaNum, horaSql, iso } from './dates';
 import { inicioDoMesISO } from './precosIa';
 
 /* ============================================================
@@ -367,13 +368,7 @@ export class SupabaseRepo implements AgendaRepo {
   }
 
   async proximasDoAluno(alunoId: string): Promise<ProximaAula[]> {
-    const hoje = new Date();
-    const hojeISO =
-      hoje.getFullYear() +
-      '-' +
-      String(hoje.getMonth() + 1).padStart(2, '0') +
-      '-' +
-      String(hoje.getDate()).padStart(2, '0');
+    const hojeISO = iso(dateFor(0));
     const { data, error } = await sb()
       .from('reserva')
       .select('data,hora,status,unidade:unidade_id(nome)')
@@ -391,6 +386,32 @@ export class SupabaseRepo implements AgendaRepo {
       unidadeNome: um(r.unidade)?.nome ?? '',
       status: r.status,
     })));
+  }
+
+  async fixosDoAluno(alunoId: string): Promise<FixoDoAluno[]> {
+    const hojeISO = iso(dateFor(0));
+    const { data, error } = await sb()
+      .from('vinculo_fixo')
+      .select('inicio,fim,grade:grade_horario_id(dia_semana,hora,ativo,unidade:unidade_id(nome))')
+      .eq('aluno_id', alunoId)
+      .or(`fim.is.null,fim.gte.${hojeISO}`);
+    if (error) throw error;
+    type GRow = {
+      dia_semana: number;
+      hora: string;
+      ativo: boolean;
+      unidade: { nome: string } | { nome: string }[] | null;
+    };
+    type Row = { inicio: string; fim: string | null; grade: GRow | GRow[] | null };
+    return ((data as unknown as Row[]) ?? [])
+      .map((v) => ({ v, g: um(v.grade) }))
+      .filter(({ g }) => g != null && g.ativo)
+      .map(({ g }) => ({
+        unidadeNome: um(g!.unidade)?.nome ?? '',
+        dia_semana: g!.dia_semana,
+        hora: horaNum(g!.hora),
+      }))
+      .sort((a, b) => (a.dia_semana === b.dia_semana ? a.hora - b.hora : a.dia_semana - b.dia_semana));
   }
 
   async grade(unidadeId: string): Promise<GradeItem[]> {

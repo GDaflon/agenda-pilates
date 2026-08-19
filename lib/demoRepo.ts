@@ -2,6 +2,7 @@ import type { AgendaRepo, ResultadoMarcacao } from './repo';
 import {
   Aluno,
   DiaMes,
+  FixoDoAluno,
   GradeItem,
   ItemMes,
   MembroEquipe,
@@ -538,6 +539,22 @@ export class DemoRepo implements AgendaRepo {
         unidadeNome: s.unidades.find((u) => u.id === r.unidade_id)?.nome ?? '',
         status: r.status,
       }));
+  }
+
+  async fixosDoAluno(alunoId: string): Promise<FixoDoAluno[]> {
+    await espera(60);
+    const s = st();
+    const out: FixoDoAluno[] = [];
+    for (const [chave, ids] of s.fixos) {
+      if (!ids.includes(alunoId)) continue;
+      const [uid, wd, h] = chave.split('|');
+      out.push({
+        unidadeNome: s.unidades.find((u) => u.id === uid)?.nome ?? '',
+        dia_semana: Number(wd),
+        hora: Number(h),
+      });
+    }
+    return out.sort((a, b) => (a.dia_semana === b.dia_semana ? a.hora - b.hora : a.dia_semana - b.dia_semana));
   }
 
   async grade(unidadeId: string): Promise<GradeItem[]> {

@@ -2,7 +2,7 @@
 
 Agenda digital para as 3 clínicas de pilates — substitui a agenda de papel e o vai-e-vem do WhatsApp.
 
-**Fase 1 (este repositório):** agenda do dia por unidade, marcação em 2 toques com autocomplete (cadastro de aluno nasce sozinho), horário fixo semanal para mensalistas, ausência que libera vaga só no dia, check-in/falta, geração da mensagem de vagas para o grupo do WhatsApp, atualização em tempo real entre celulares, PWA (instala como app).
+**Fase 1 (este repositório):** agenda do dia por unidade, marcação em 2 toques com autocomplete (cadastro de aluno nasce sozinho), horário fixo semanal para qualquer aluno (mensalista, Wellhub ou TotalPass), ausência que libera vaga só no dia, check-in/falta, geração da mensagem de vagas para o grupo do WhatsApp, atualização em tempo real entre celulares, PWA (instala como app).
 
 Stack: **Next.js 16 (App Router) + Supabase (Postgres, Auth, Realtime) + Vercel**. Custo: R$ 0/mês nos planos free.
 

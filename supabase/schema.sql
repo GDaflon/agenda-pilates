@@ -56,7 +56,7 @@ create table if not exists grade_horario (
   unique (unidade_id, dia_semana, hora)
 );
 
--- mensalista "dono" de uma vaga recorrente
+-- aluno "dono" de uma vaga recorrente (qualquer tipo: mensalista, wellhub, totalpass)
 create table if not exists vinculo_fixo (
   id               uuid primary key default gen_random_uuid(),
   aluno_id         uuid not null references aluno(id) on delete cascade,
@@ -87,7 +87,7 @@ create unique index if not exists reserva_unica
 
 create index if not exists reserva_dia on reserva (unidade_id, data);
 
--- mensalista avisou que falta em uma data (libera a vaga só naquele dia)
+-- aluno com fixo avisou que falta em uma data (libera a vaga só naquele dia)
 create table if not exists ausencia_fixo (
   id              uuid primary key default gen_random_uuid(),
   vinculo_fixo_id uuid not null references vinculo_fixo(id) on delete cascade,
@@ -183,7 +183,7 @@ create policy uso_ia_select on uso_ia for select to authenticated using (is_team
 
 -- ---------- Funções de negócio ----------
 
--- Materializa as reservas dos mensalistas fixos de um dia (idempotente).
+-- Materializa as reservas dos alunos fixos de um dia (idempotente).
 -- Nunca recria reserva que já existe (mesmo cancelada) nem de quem avisou ausência.
 create or replace function gerar_dia(p_unidade uuid, p_data date)
 returns void language plpgsql set search_path = public as $$
@@ -289,7 +289,7 @@ begin
   end if;
 end $$;
 
--- Cria vínculo fixo semanal para mensalista + reserva do dia escolhido.
+-- Cria vínculo fixo semanal para o aluno (qualquer tipo) + reserva do dia escolhido.
 -- Erros: horario_inexistente | ja_fixo | sem_vaga
 create or replace function criar_fixo(p_unidade uuid, p_data date, p_hora time, p_aluno uuid)
 returns void language plpgsql set search_path = public as $$

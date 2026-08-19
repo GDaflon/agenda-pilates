@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useApp } from '@/lib/appState';
-import { Aluno, ProximaAula, TIPO_LABEL, TipoAluno } from '@/lib/types';
-import { horaFmt } from '@/lib/dates';
+import { Aluno, FixoDoAluno, ProximaAula, TIPO_LABEL, TipoAluno } from '@/lib/types';
+import { DIAS_LONGO, horaFmt } from '@/lib/dates';
 import { titleCase } from '@/lib/text';
 import BottomSheet from './BottomSheet';
 
@@ -30,6 +30,7 @@ export default function AlunoSheet({
   const [obs, setObs] = useState('');
   const [ativo, setAtivo] = useState(true);
   const [proximas, setProximas] = useState<ProximaAula[]>([]);
+  const [fixos, setFixos] = useState<FixoDoAluno[]>([]);
   const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
@@ -42,6 +43,7 @@ export default function AlunoSheet({
       setObs(aluno.observacoes ?? '');
       setAtivo(aluno.ativo);
       repo.proximasDoAluno(aluno.id).then(setProximas).catch(() => setProximas([]));
+      repo.fixosDoAluno(aluno.id).then(setFixos).catch(() => setFixos([]));
     } else {
       setNome('');
       setTelefone('');
@@ -49,6 +51,7 @@ export default function AlunoSheet({
       setObs('');
       setAtivo(true);
       setProximas([]);
+      setFixos([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [alvo]);
@@ -123,6 +126,22 @@ export default function AlunoSheet({
           <input type="checkbox" checked={ativo} onChange={(e) => setAtivo(e.target.checked)} />
           Aluno ativo
         </label>
+      )}
+
+      {!ehNovo && fixos.length > 0 && (
+        <>
+          <span className="field-label">Horários fixos semanais</span>
+          <div className="sugg-list">
+            {fixos.map((f, i) => (
+              <div key={i} className="sugg-item" style={{ cursor: 'default' }}>
+                <span className="nm">
+                  {DIAS_LONGO[f.dia_semana]} · {horaFmt(f.hora)}
+                </span>
+                <span className="sugg-sub">{f.unidadeNome}</span>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {!ehNovo && proximas.length > 0 && (

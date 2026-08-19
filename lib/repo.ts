@@ -1,6 +1,7 @@
 import {
   Aluno,
   DiaMes,
+  FixoDoAluno,
   GradeItem,
   MembroEquipe,
   Papel,
@@ -47,6 +48,8 @@ export interface AgendaRepo {
     patch: Partial<Pick<Aluno, 'nome' | 'telefone' | 'tipo' | 'observacoes' | 'ativo'>>
   ): Promise<void>;
   proximasDoAluno(alunoId: string): Promise<ProximaAula[]>;
+  /** Horários fixos semanais vigentes do aluno (qualquer convênio). */
+  fixosDoAluno(alunoId: string): Promise<FixoDoAluno[]>;
 
   // configuração (dono)
   grade(unidadeId: string): Promise<GradeItem[]>;

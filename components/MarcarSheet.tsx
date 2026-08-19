@@ -72,7 +72,8 @@ export default function MarcarSheet({
   const buscaLimpa = busca.trim();
   const temExato = resultados.some((a) => norm(a.nome) === norm(buscaLimpa));
   const tipoEscolhido: TipoAluno | null = sel ? sel.tipo : novo ? tipoNovo : null;
-  const mostraFixo = tipoEscolhido === 'mensalista';
+  // fixo independe do convênio: mensalista, Wellhub e TotalPass podem ter horário fixo
+  const mostraFixo = tipoEscolhido != null;
   const podeConfirmar = !!sel || (novo && buscaLimpa.length >= 2);
 
   const diaBase = diaSemanaDe(dataISO);
@@ -165,6 +166,9 @@ export default function MarcarSheet({
           setBusca(e.target.value);
           setSel(null);
           setNovo(false);
+          setFixo(false);
+          setExtras([]);
+          setAddDia(null);
         }}
       />
 

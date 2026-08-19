@@ -60,6 +60,13 @@ export interface DiaMes {
   itens: ItemMes[];
 }
 
+/** horário fixo semanal de um aluno (ficha do aluno) */
+export interface FixoDoAluno {
+  unidadeNome: string;
+  dia_semana: number; // 0 = domingo
+  hora: number; // minutos do dia
+}
+
 export interface ProximaAula {
   data: string;
   hora: number;
