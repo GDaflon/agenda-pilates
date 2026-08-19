@@ -56,6 +56,7 @@ interface ReservaRow {
   tipo_no_dia: TipoAluno;
   origem: Reserva['origem'];
   status: StatusReserva;
+  encaixe: boolean;
   aluno: AlunoRow | AlunoRow[] | null;
 }
 
@@ -101,7 +102,7 @@ export class SupabaseRepo implements AgendaRepo {
     const { data: rs, error: e2 } = await sb()
       .from('reserva')
       .select(
-        'id,unidade_id,data,hora,tipo_no_dia,origem,status,aluno:aluno_id(id,nome,telefone,tipo,observacoes,ativo)'
+        'id,unidade_id,data,hora,tipo_no_dia,origem,status,encaixe,aluno:aluno_id(id,nome,telefone,tipo,observacoes,ativo)'
       )
       .eq('unidade_id', unidadeId)
       .eq('data', dataISO);
@@ -133,6 +134,7 @@ export class SupabaseRepo implements AgendaRepo {
         tipo_no_dia: r.tipo_no_dia,
         origem: r.origem,
         status: r.status,
+        encaixe: r.encaixe,
       });
       porHora.set(h, lista);
     }
@@ -299,14 +301,17 @@ export class SupabaseRepo implements AgendaRepo {
     alunoId: string;
     fixo?: boolean;
     origem?: 'manual' | 'assistente';
+    encaixe?: boolean;
   }): Promise<ResultadoMarcacao> {
-    const params: Record<string, string> = {
+    const params: Record<string, string | boolean> = {
       p_unidade: p.unidadeId,
       p_data: p.dataISO,
       p_hora: horaSql(p.hora),
       p_aluno: p.alunoId,
     };
     if (!p.fixo && p.origem) params.p_origem = p.origem;
+    // encaixe é sempre pontual: criar_fixo não abre exceção de capacidade
+    if (!p.fixo && p.encaixe) params.p_encaixe = true;
     const { error } = await sb().rpc(p.fixo ? 'criar_fixo' : 'marcar_reserva', params);
     if (error) return { ok: false, erro: traduzErro(error.message) };
     return { ok: true };

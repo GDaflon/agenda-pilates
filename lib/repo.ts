@@ -32,6 +32,8 @@ export interface AgendaRepo {
     alunoId: string;
     fixo?: boolean;
     origem?: 'manual' | 'assistente';
+    /** true = marca acima da capacidade (encaixe), sem checar vaga */
+    encaixe?: boolean;
   }): Promise<ResultadoMarcacao>;
   setStatus(reservaId: string, status: StatusReserva): Promise<void>;
   /** Cancela; se origem = fixo, registra ausência do dia (vaga liberada só na data). */

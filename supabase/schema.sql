@@ -75,6 +75,7 @@ create table if not exists reserva (
   tipo_no_dia  tipo_aluno not null,
   origem       origem_reserva not null default 'manual',
   status       status_reserva not null default 'reservado',
+  encaixe      boolean not null default false,
   criado_por   uuid references perfil(id),
   criado_em    timestamptz not null default now(),
   cancelado_em timestamptz
@@ -217,10 +218,11 @@ language sql stable set search_path = public as $$
          (select count(*) from reserva r
            where r.unidade_id = gh.unidade_id and r.data = p_data
              and r.hora = gh.hora and r.status <> 'cancelado') as ocupadas,
-         coalesce(gh.capacidade, u.capacidade_padrao)
-           - (select count(*) from reserva r
-               where r.unidade_id = gh.unidade_id and r.data = p_data
-                 and r.hora = gh.hora and r.status <> 'cancelado')::int as livres
+         greatest(0,
+           coalesce(gh.capacidade, u.capacidade_padrao)
+             - (select count(*) from reserva r
+                 where r.unidade_id = gh.unidade_id and r.data = p_data
+                   and r.hora = gh.hora and r.status <> 'cancelado')::int) as livres
   from grade_horario gh
   join unidade u on u.id = gh.unidade_id
   where gh.unidade_id = p_unidade
@@ -230,9 +232,11 @@ language sql stable set search_path = public as $$
 $$;
 
 -- Marca um aluno checando capacidade (RN01). Erros: horario_inexistente | sem_vaga
+-- p_encaixe = true pula a checagem de capacidade e grava encaixe = true
+-- (paciente a mais por decisão explícita da equipe).
 create or replace function marcar_reserva(
   p_unidade uuid, p_data date, p_hora time, p_aluno uuid,
-  p_origem origem_reserva default 'manual')
+  p_origem origem_reserva default 'manual', p_encaixe boolean default false)
 returns uuid language plpgsql set search_path = public as $$
 declare
   v_cap  int;
@@ -246,15 +250,17 @@ begin
     and gh.hora = p_hora and gh.ativo;
   if v_cap is null then raise exception 'horario_inexistente'; end if;
 
-  select count(*) into v_occ from reserva
-  where unidade_id = p_unidade and data = p_data and hora = p_hora and status <> 'cancelado';
-  if v_occ >= v_cap then raise exception 'sem_vaga'; end if;
+  if not p_encaixe then
+    select count(*) into v_occ from reserva
+    where unidade_id = p_unidade and data = p_data and hora = p_hora and status <> 'cancelado';
+    if v_occ >= v_cap then raise exception 'sem_vaga'; end if;
+  end if;
 
   select tipo into v_tipo from aluno where id = p_aluno;
   if v_tipo is null then raise exception 'aluno_inexistente'; end if;
 
-  insert into reserva (unidade_id, data, hora, aluno_id, tipo_no_dia, origem, criado_por)
-  values (p_unidade, p_data, p_hora, p_aluno, v_tipo, p_origem, auth.uid())
+  insert into reserva (unidade_id, data, hora, aluno_id, tipo_no_dia, origem, criado_por, encaixe)
+  values (p_unidade, p_data, p_hora, p_aluno, v_tipo, p_origem, auth.uid(), p_encaixe)
   returning id into v_id;
   return v_id;
 end $$;

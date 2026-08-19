@@ -101,7 +101,7 @@ const FERRAMENTAS: Anthropic.Tool[] = [
   {
     name: 'marcar_aluno',
     description:
-      'Marca um aluno em uma turma. Informe aluno_id (obtido com buscar_aluno) OU nome_novo para cadastrar um aluno que não existe (tipo padrão: wellhub). Nunca use nome_novo se buscar_aluno encontrou o aluno.',
+      'Marca um aluno em uma turma. Informe aluno_id (obtido com buscar_aluno) OU nome_novo para cadastrar um aluno que não existe (tipo padrão: wellhub). Nunca use nome_novo se buscar_aluno encontrou o aluno. Use encaixe=true APENAS se o usuário pedir explicitamente para encaixar alguém numa turma cheia.',
     input_schema: {
       type: 'object',
       properties: {
@@ -114,6 +114,11 @@ const FERRAMENTAS: Anthropic.Tool[] = [
           type: 'string',
           enum: ['mensalista', 'wellhub', 'totalpass'],
           description: 'Tipo do aluno novo (padrão: wellhub)',
+        },
+        encaixe: {
+          type: 'boolean',
+          description:
+            'true = marca ACIMA da capacidade da turma (encaixe). Só quando o usuário pedir explicitamente ("encaixa", "põe mais um", "mesmo lotado"). Nunca use por conta própria para contornar uma turma cheia.',
         },
       },
       required: ['unidade_id', 'data', 'hora'],
@@ -161,11 +166,23 @@ async function vagasDoSlot(
   return slot ? slot.livres : null;
 }
 
+/** Argumentos que o modelo pode mandar nas ferramentas (ver FERRAMENTAS acima). */
+interface EntradaFerramenta {
+  nome?: string;
+  unidade_id?: string;
+  data?: string;
+  hora?: string;
+  aluno_id?: string;
+  nome_novo?: string;
+  tipo?: string;
+  encaixe?: boolean;
+}
+
 async function executaFerramenta(
   sb: SupabaseClient,
   unidades: UnidadeRow[],
   nome: string,
-  input: Record<string, string | undefined>
+  input: EntradaFerramenta
 ): Promise<{ texto: string; mudouAgenda: boolean }> {
   if (nome === 'buscar_aluno') {
     const termo = (input.nome ?? '').trim();
@@ -231,12 +248,14 @@ async function executaFerramenta(
       return { texto: 'informe aluno_id (via buscar_aluno) ou nome_novo', mudouAgenda: false };
     }
 
+    const ehEncaixe = input.encaixe === true;
     const { error } = await sb.rpc('marcar_reserva', {
       p_unidade: unidade.id,
       p_data: input.data!,
       p_hora: horaSql,
       p_aluno: alunoId,
       p_origem: 'assistente',
+      p_encaixe: ehEncaixe,
     });
     if (error) {
       // erro claro + vagas do dia, para o modelo oferecer alternativas
@@ -256,8 +275,13 @@ async function executaFerramenta(
     const livres = await vagasDoSlot(sb, unidade.id, input.data!, horaSql);
     return {
       texto:
-        `marcado: ${alunoNome} em ${input.data} às ${horaFmt(horaMin(horaSql))} na ${unidade.nome}` +
-        (livres != null ? `; restam ${livres} vaga(s) na turma` : '') +
+        (ehEncaixe ? 'ENCAIXE feito (acima da capacidade): ' : 'marcado: ') +
+        `${alunoNome} em ${input.data} às ${horaFmt(horaMin(horaSql))} na ${unidade.nome}` +
+        (ehEncaixe
+          ? '; a turma estava cheia e agora está com um a mais — diga isso na resposta'
+          : livres != null
+            ? `; restam ${livres} vaga(s) na turma`
+            : '') +
         (cadastrado ? `; aluno NOVO cadastrado como ${input.tipo ?? 'wellhub'}` : ''),
       mudouAgenda: true,
     };
@@ -377,6 +401,7 @@ export async function POST(request: Request) {
     `- Nunca invente dados de agenda ou de alunos — use sempre as ferramentas.\n` +
     `- Antes de marcar ou desmarcar, localize o aluno com buscar_aluno. Se a busca não encontrar NINGUÉM, cadastre direto com nome_novo (wellhub, salvo indicação) e avise que o aluno foi criado. Se encontrar mais de um compatível, pergunte qual é.\n` +
     `- Se o horário pedido estiver LOTADO, NÃO marque outro horário por conta própria: mostre as alternativas com vaga do dia e pergunte qual o usuário quer.\n` +
+    `- Encaixe (marcar_aluno com encaixe=true) põe alguém ACIMA da capacidade. Use SOMENTE quando o usuário pedir explicitamente ("encaixa a Maria às 9h30", "põe mais um mesmo lotado"). Nunca recorra ao encaixe sozinho para resolver turma cheia — ofereça alternativas. Ao encaixar, diga claramente na resposta que ficou acima da capacidade.\n` +
     `- Responda em texto puro, SEM markdown (nada de ** ou #) — o chat não formata; emojis podem.`;
 
   // ---- controle de custo (zero surpresa) ----
@@ -449,7 +474,7 @@ export async function POST(request: Request) {
           sb,
           unidades,
           bloco.name,
-          bloco.input as Record<string, string | undefined>
+          bloco.input as EntradaFerramenta
         );
         if (r.mudouAgenda) houveAcao = true;
         resultados.push({ type: 'tool_result', tool_use_id: bloco.id, content: r.texto });

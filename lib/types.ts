@@ -30,6 +30,8 @@ export interface Reserva {
   tipo_no_dia: TipoAluno;
   origem: OrigemReserva;
   status: StatusReserva;
+  /** true = marcado acima da capacidade, por decisão explícita da equipe */
+  encaixe: boolean;
 }
 
 export interface SlotDia {

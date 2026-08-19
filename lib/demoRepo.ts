@@ -35,6 +35,7 @@ interface ReservaRow {
   tipo_no_dia: TipoAluno;
   origem: Reserva['origem'];
   status: StatusReserva;
+  encaixe?: boolean;
   ausencia?: boolean;
 }
 
@@ -309,6 +310,7 @@ export class DemoRepo implements AgendaRepo {
       tipo_no_dia: r.tipo_no_dia,
       origem: r.origem,
       status: r.status,
+      encaixe: !!r.encaixe,
     };
   }
 
@@ -403,10 +405,15 @@ export class DemoRepo implements AgendaRepo {
     alunoId: string;
     fixo?: boolean;
     origem?: 'manual' | 'assistente';
+    encaixe?: boolean;
   }): Promise<ResultadoMarcacao> {
     await espera();
     const s = st();
-    if (s.vagas(p.unidadeId, p.dataISO, p.hora) <= 0) return { ok: false, erro: 'Turma completa.' };
+    // encaixe é sempre pontual: passa por cima da capacidade, mas nunca com fixo
+    const ehEncaixe = !!p.encaixe && !p.fixo;
+    if (!ehEncaixe && s.vagas(p.unidadeId, p.dataISO, p.hora) <= 0) {
+      return { ok: false, erro: 'Turma completa.' };
+    }
     if (s.slotReservas(p.unidadeId, p.dataISO, p.hora).some((r) => r.alunoId === p.alunoId)) {
       return { ok: false, erro: 'Aluno já está nesse horário.' };
     }
@@ -455,6 +462,7 @@ export class DemoRepo implements AgendaRepo {
         tipo_no_dia: aluno.tipo,
         origem: p.origem ?? 'manual',
         status: 'reservado',
+        encaixe: ehEncaixe,
       });
     }
     this.notify();

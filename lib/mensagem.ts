@@ -11,7 +11,8 @@ export function linhasVagas(slots: SlotDia[], off: number): LinhaVaga[] {
   const agora = agoraMin();
   return slots
     .filter((s) => off > 0 || s.hora >= agora)
-    .map((s) => ({ h: s.hora, vagas: s.capacidade - s.reservas.length }));
+    // encaixe pode passar da capacidade; para o grupo isso é "completo", nunca vaga negativa
+    .map((s) => ({ h: s.hora, vagas: Math.max(0, s.capacidade - s.reservas.length) }));
 }
 
 export function buildMensagem(unidadeNome: string, off: number, slots: SlotDia[]): string {

@@ -13,6 +13,7 @@ App Next.js 16 (App Router) + Supabase. Identidade visual em `branding/BRAND.md`
 
 ## Convenções que não estão óbvias no código
 
+- **Encaixe**: `reserva.encaixe` marca quem entrou acima da capacidade (`marcar_reserva(..., p_encaixe => true)`). É sempre pontual — nunca vira fixo, e `vagas_do_dia` usa `greatest(0, …)` para vaga nunca ficar negativa. Para valer toda semana, sobe-se a capacidade do horário na Config.
 - **Capacidade**: `grade_horario.capacidade` (por horário) prevalece sobre `unidade.capacidade_padrao` (hoje 6) — é o `coalesce` que `vagas_do_dia`/`marcar_reserva` fazem. A Config edita as duas; o `demoRepo` precisa respeitar a mesma precedência.
 - **Horário = minutos do dia** (`hora: number`, 330 = 05:30) em todo o app; exibição "05h30" via `horaFmt`. O banco usa `time`; `horaNum`/`horaSql` em `lib/dates.ts` fazem a ponte. Turmas começam nas meias horas (grade padrão 05:30–11:30 e 15:30–19:30 seg–sex, 08:30–11:30 sáb).
 - Toda a lógica de agenda mora nas funções SQL (`supabase/schema.sql`): `gerar_dia`, `vagas_do_dia`, `marcar_reserva`, `registrar_ausencia`, `criar_fixo`, `encerrar_fixo`. Rotas e telas só chamam essas funções — nunca duplique regra de capacidade/fixo no TS.

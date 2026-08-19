@@ -225,6 +225,13 @@ body {
 .slot-occ.has-vagas {
   color: var(--brand);
 }
+/* ocupação acima da capacidade (encaixe): tem que saltar aos olhos */
+.slot-occ.over {
+  color: var(--amber);
+  background: var(--amber-soft);
+  border-radius: 6px;
+  padding: 2px 7px;
+}
 .chips {
   display: flex;
   flex-direction: column;
@@ -312,6 +319,10 @@ body {
   padding: 2px 6px;
   flex: none;
 }
+.origin-tag.enc {
+  color: var(--amber);
+  background: var(--amber-soft);
+}
 .free-btn {
   display: flex;
   align-items: center;
@@ -331,6 +342,50 @@ body {
 }
 .free-btn:active {
   background: var(--brand-soft);
+}
+/* turma cheia: encaixe existe, mas discreto — não compete com o marcar normal */
+.encaixe-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px dashed var(--amber-soft);
+  color: var(--amber);
+  background: transparent;
+  border-radius: 12px;
+  padding: 8px;
+  min-height: 38px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  width: 100%;
+  transition: 0.12s;
+}
+.encaixe-btn:active {
+  background: var(--amber-soft);
+}
+.encaixe-hint {
+  font-weight: 600;
+  opacity: 0.75;
+  font-size: 0.75rem;
+}
+/* aviso no MarcarSheet em modo encaixe */
+.encaixe-aviso {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background: var(--amber-soft);
+  color: var(--amber);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin: 4px 0 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.encaixe-aviso span {
+  font-weight: 600;
+  font-size: 0.76rem;
+  opacity: 0.85;
 }
 .ausencia-note {
   font-size: 0.74rem;

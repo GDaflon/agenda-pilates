@@ -12,11 +12,16 @@ export default function MarcarSheet({
   hora,
   dataISO,
   vagasLivres,
+  capacidade,
+  encaixe = false,
   onFechar,
 }: {
   hora: number | null;
   dataISO: string;
   vagasLivres: number;
+  capacidade?: number;
+  /** true = turma cheia; marca acima da capacidade por decisão explícita */
+  encaixe?: boolean;
   onFechar: () => void;
 }) {
   const { repo, unidade, off, toast, bump } = useApp();
@@ -72,8 +77,10 @@ export default function MarcarSheet({
   const buscaLimpa = busca.trim();
   const temExato = resultados.some((a) => norm(a.nome) === norm(buscaLimpa));
   const tipoEscolhido: TipoAluno | null = sel ? sel.tipo : novo ? tipoNovo : null;
-  // fixo independe do convênio: mensalista, Wellhub e TotalPass podem ter horário fixo
-  const mostraFixo = tipoEscolhido != null;
+  // fixo independe do convênio: mensalista, Wellhub e TotalPass podem ter horário fixo.
+  // No encaixe não faz sentido: a vaga extra é só daquele dia (para valer toda semana,
+  // a dona sobe a capacidade da turma na Config).
+  const mostraFixo = tipoEscolhido != null && !encaixe;
   const podeConfirmar = !!sel || (novo && buscaLimpa.length >= 2);
 
   const diaBase = diaSemanaDe(dataISO);
@@ -108,6 +115,7 @@ export default function MarcarSheet({
         hora,
         alunoId: aluno.id,
         fixo: ehFixo,
+        encaixe,
       });
       if (!res.ok) {
         toast(res.erro);
@@ -138,6 +146,7 @@ export default function MarcarSheet({
       } else {
         toast(
           `${primeiroNome(aluno.nome)} ✓ ${horaFmt(hora)}` +
+            (encaixe ? ' · encaixe acima da capacidade' : '') +
             (ehFixo ? ` · fixo em ${criados + 1} ${criados ? 'horários' : 'horário'}/semana` : '') +
             (cadastrei ? ' · aluno cadastrado' : '')
         );
@@ -151,10 +160,21 @@ export default function MarcarSheet({
 
   return (
     <BottomSheet aberto={hora != null} onFechar={onFechar}>
-      <div className="sheet-title">Marcar às {hora != null ? horaFmt(hora) : ''}</div>
-      <div className="sheet-sub">
-        {unidade?.nome} · {nomeDia(off)} · {vagasLivres} vaga(s) livre(s)
+      <div className="sheet-title">
+        {encaixe ? 'Encaixar às ' : 'Marcar às '}
+        {hora != null ? horaFmt(hora) : ''}
       </div>
+      <div className="sheet-sub">
+        {unidade?.nome} · {nomeDia(off)} ·{' '}
+        {encaixe ? 'turma completa' : `${vagasLivres} vaga(s) livre(s)`}
+      </div>
+
+      {encaixe && (
+        <div className="encaixe-aviso">
+          ⚠️ Acima da capacidade{capacidade ? ` (${capacidade})` : ''}. Confirmar encaixe?
+          <span>Vale só para este dia e fica marcado na agenda como encaixe.</span>
+        </div>
+      )}
 
       <input
         ref={inputRef}
@@ -300,7 +320,7 @@ export default function MarcarSheet({
       )}
 
       <button className="btn" disabled={!podeConfirmar || salvando} onClick={confirmar}>
-        {salvando ? 'Marcando…' : 'Confirmar marcação'}
+        {salvando ? 'Marcando…' : encaixe ? 'Confirmar encaixe' : 'Confirmar marcação'}
       </button>
     </BottomSheet>
   );

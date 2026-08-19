@@ -42,7 +42,7 @@ update perfil set papel = 'dono', nome = 'Nome da Mãe'
 
 3. As **professoras** você cria pelo próprio app: **Config → Equipe** (só dono) — nome, e-mail, senha temporária e papel. Lá também dá para trocar papel e desativar o acesso. (Precisa da `SUPABASE_SERVICE_ROLE_KEY` no passo 3.)
 
-> Já rodou o schema antigo? Rode também os arquivos de [`supabase/migrations/`](supabase/migrations/) na ordem (002 = grade nas meias horas, 003 = coluna `ativo` do perfil, 004 = tabela `uso_ia`, 005 = papel admin→dono, 006 = troca de senha no primeiro acesso, 007 = capacidade padrão 6).
+> Já rodou o schema antigo? Rode também os arquivos de [`supabase/migrations/`](supabase/migrations/) na ordem (002 = grade nas meias horas, 003 = coluna `ativo` do perfil, 004 = tabela `uso_ia`, 005 = papel admin→dono, 006 = troca de senha no primeiro acesso, 007 = capacidade padrão 6, 008 = encaixe).
 
 ### 3. Variáveis de ambiente
 
@@ -126,7 +126,7 @@ supabase/
 
 ### Regras que o banco garante (não confie só na tela)
 
-- Capacidade por turma (função `marcar_reserva` → erro `sem_vaga`).
+- Capacidade por turma (função `marcar_reserva` → erro `sem_vaga`); o **encaixe** (`p_encaixe = true`) é a única forma de passar disso, e fica marcado na reserva.
 - Sem marcação duplicada ativa (índice único `reserva_unica`).
 - Fixos materializados por dia pela função idempotente `gerar_dia`.
 - Ausência de fixo (`registrar_ausencia`) libera a vaga **só naquele dia**.
