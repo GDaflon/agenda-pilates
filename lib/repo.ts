@@ -52,6 +52,8 @@ export interface AgendaRepo {
   proximasDoAluno(alunoId: string): Promise<ProximaAula[]>;
   /** Horários fixos semanais vigentes do aluno (qualquer convênio). */
   fixosDoAluno(alunoId: string): Promise<FixoDoAluno[]>;
+  /** Encerra um horário fixo pelo id do vínculo (a partir de hoje). */
+  encerrarVinculo(vinculoId: string): Promise<void>;
 
   // configuração (dono)
   grade(unidadeId: string): Promise<GradeItem[]>;

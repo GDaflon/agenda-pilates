@@ -566,12 +566,40 @@ export class DemoRepo implements AgendaRepo {
       if (!ids.includes(alunoId)) continue;
       const [uid, wd, h] = chave.split('|');
       out.push({
+        // no demo não há tabela de vínculo: o id é a própria chave + aluno
+        id: `${chave}|${alunoId}`,
+        unidadeId: uid,
         unidadeNome: s.unidades.find((u) => u.id === uid)?.nome ?? '',
         dia_semana: Number(wd),
         hora: Number(h),
       });
     }
     return out.sort((a, b) => (a.dia_semana === b.dia_semana ? a.hora - b.hora : a.dia_semana - b.dia_semana));
+  }
+
+  async encerrarVinculo(vinculoId: string): Promise<void> {
+    await espera(60);
+    const s = st();
+    const [uid, wd, h, alunoId] = vinculoId.split('|');
+    const chave = `${uid}|${wd}|${h}`;
+    s.fixos.set(chave, (s.fixos.get(chave) ?? []).filter((id) => id !== alunoId));
+    const hoje = iso(dateFor(0));
+    const hora = Number(h);
+    // solta as vagas de hoje em diante; check-in/falta são histórico e ficam
+    for (const r of s.reservas) {
+      if (
+        r.unidade_id === uid &&
+        r.alunoId === alunoId &&
+        r.hora === hora &&
+        r.origem === 'fixo' &&
+        r.status === 'reservado' &&
+        r.data >= hoje &&
+        new Date(r.data + 'T12:00:00').getDay() === Number(wd)
+      ) {
+        r.status = 'cancelado';
+      }
+    }
+    this.notify();
   }
 
   async grade(unidadeId: string): Promise<GradeItem[]> {

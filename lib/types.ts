@@ -67,6 +67,9 @@ export interface DiaMes {
 
 /** horário fixo semanal de um aluno (ficha do aluno) */
 export interface FixoDoAluno {
+  /** id do vinculo_fixo — usado para encerrar */
+  id: string;
+  unidadeId: string;
   unidadeNome: string;
   dia_semana: number; // 0 = domingo
   hora: number; // minutos do dia

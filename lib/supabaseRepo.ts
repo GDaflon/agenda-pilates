@@ -397,26 +397,34 @@ export class SupabaseRepo implements AgendaRepo {
     const hojeISO = iso(dateFor(0));
     const { data, error } = await sb()
       .from('vinculo_fixo')
-      .select('inicio,fim,grade:grade_horario_id(dia_semana,hora,ativo,unidade:unidade_id(nome))')
+      .select('id,inicio,fim,grade:grade_horario_id(dia_semana,hora,ativo,unidade:unidade_id(id,nome))')
       .eq('aluno_id', alunoId)
       .or(`fim.is.null,fim.gte.${hojeISO}`);
     if (error) throw error;
+    type URow = { id: string; nome: string };
     type GRow = {
       dia_semana: number;
       hora: string;
       ativo: boolean;
-      unidade: { nome: string } | { nome: string }[] | null;
+      unidade: URow | URow[] | null;
     };
-    type Row = { inicio: string; fim: string | null; grade: GRow | GRow[] | null };
+    type Row = { id: string; inicio: string; fim: string | null; grade: GRow | GRow[] | null };
     return ((data as unknown as Row[]) ?? [])
       .map((v) => ({ v, g: um(v.grade) }))
       .filter(({ g }) => g != null && g.ativo)
-      .map(({ g }) => ({
+      .map(({ v, g }) => ({
+        id: v.id,
+        unidadeId: um(g!.unidade)?.id ?? '',
         unidadeNome: um(g!.unidade)?.nome ?? '',
         dia_semana: g!.dia_semana,
         hora: horaNum(g!.hora),
       }))
       .sort((a, b) => (a.dia_semana === b.dia_semana ? a.hora - b.hora : a.dia_semana - b.dia_semana));
+  }
+
+  async encerrarVinculo(vinculoId: string): Promise<void> {
+    const { error } = await sb().rpc('encerrar_vinculo', { p_vinculo: vinculoId });
+    if (error) throw error;
   }
 
   async grade(unidadeId: string): Promise<GradeItem[]> {

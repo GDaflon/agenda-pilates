@@ -337,6 +337,37 @@ begin
      and (vf.fim is null or vf.fim >= r.data);
 end $$;
 
+-- Encerra um vínculo fixo pelo id do vínculo (fluxo da ficha do aluno).
+-- Diferente do encerrar_fixo, cancela também as reservas futuras já
+-- materializadas; check-in/falta ficam intactos (é histórico).
+create or replace function encerrar_vinculo(p_vinculo uuid)
+returns void language plpgsql set search_path = public as $$
+declare
+  v_unidade uuid;
+  v_hora    time;
+  v_dow     int;
+  v_aluno   uuid;
+begin
+  select gh.unidade_id, gh.hora, gh.dia_semana, vf.aluno_id
+    into v_unidade, v_hora, v_dow, v_aluno
+    from vinculo_fixo vf
+    join grade_horario gh on gh.id = vf.grade_horario_id
+   where vf.id = p_vinculo;
+  if v_unidade is null then raise exception 'vinculo_inexistente'; end if;
+
+  update vinculo_fixo set fim = current_date - 1 where id = p_vinculo;
+
+  update reserva
+     set status = 'cancelado', cancelado_em = now()
+   where unidade_id = v_unidade
+     and aluno_id   = v_aluno
+     and hora       = v_hora
+     and data      >= current_date
+     and origem     = 'fixo'
+     and status     = 'reservado'
+     and extract(dow from data) = v_dow;
+end $$;
+
 -- ---------- Realtime ----------
 do $$ begin
   alter publication supabase_realtime add table reserva;
