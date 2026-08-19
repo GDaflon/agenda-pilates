@@ -6,14 +6,14 @@ export const metadata: Metadata = {
   title: 'Natty Estúdio Pilates',
   description: 'Natty Estúdio Pilates — marcações, vagas e presença.',
   manifest: '/manifest.webmanifest',
+  // Ícones vêm das convenções de arquivo do Next: app/icon.svg (aba do navegador)
+  // e app/apple-icon.png (tela de início do iOS). NÃO declare metadata.icons aqui:
+  // um icons explícito substitui a metadata gerada pelos arquivos e o ícone da aba
+  // volta a sumir.
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
     title: 'Natty Pilates',
-  },
-  icons: {
-    icon: '/icon-192.png',
-    apple: '/icon-192.png',
   },
 };
 

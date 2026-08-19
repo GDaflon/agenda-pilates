@@ -31,8 +31,14 @@ de vagas.
 
 - `app/layout.tsx` — metadata/viewport (`title`, `themeColor #C0267E`).
 - `public/manifest.webmanifest` — nome completo, cores.
-- `public/icon.svg` — três pétalas magenta/roxo/teal sobre `#FBF0F6`; `icon-192.png` e
-  `icon-512.png` gerados a partir dele.
+- `app/icon.svg` — três pétalas magenta/roxo/teal sobre `#FBF0F6`; é a fonte do símbolo
+  e o que o Next serve como ícone da aba. `public/icon-192.png` e `public/icon-512.png`
+  (manifest/PWA) são gerados a partir dele; `app/apple-icon.png` é a cópia de 192px que
+  o iOS usa na tela de início.
+- Os ícones vêm das **convenções de arquivo** do Next (`app/icon.svg`, `app/apple-icon.png`).
+  Não declare `metadata.icons` em `app/layout.tsx`: um `icons` explícito substitui a
+  metadata gerada pelos arquivos e o ícone da aba some. Pelo mesmo motivo não pode existir
+  `public/icon.svg` — ele ocuparia a rota `/icon.svg` e sombrearia o arquivo do `app/`.
 - `lib/mensagem.ts` — mensagem de vagas abre com `*Natty Pilates {Unidade}*`.
 - Unidades de exemplo: **Centro** e **Jardim** (`supabase/seed.sql` e
   `lib/demoRepo.ts`).
