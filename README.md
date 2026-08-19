@@ -6,6 +6,10 @@ Agenda digital para as 3 clínicas de pilates — substitui a agenda de papel e 
 
 Stack: **Next.js 16 (App Router) + Supabase (Postgres, Auth, Realtime) + Vercel**. Custo: R$ 0/mês nos planos free.
 
+**Produção:** (endereço de produção) — é este endereço que a equipe deve
+instalar na tela de início. O antigo (domínio antigo) continua no ar
+redirecionando (307) para cá, para não quebrar quem já instalou o PWA.
+
 ---
 
 ## Rodar agora (modo demonstração)
