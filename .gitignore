@@ -48,3 +48,4 @@ supabase/.temp/
 
 # cargas com dados reais de produção — nunca versionar
 supabase/cargas/
+docs/auditoria-*

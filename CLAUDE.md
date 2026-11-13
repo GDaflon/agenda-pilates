@@ -5,14 +5,6 @@
 App Next.js 16 (App Router) + Supabase. Identidade visual em `branding/BRAND.md`
 (nunca hex solto em componente — tokens no `:root` de `app/globals.css`).
 
-## Produção
-
-App em (endereço de produção) (projeto Vercel `agenda-pilates`). O domínio
-antigo (domínio antigo) é redirect 307 para ele — não remova, há PWA
-instalado apontando para lá. Deploy: `vercel --prod --yes` a partir de uma cópia sem
-`.git` (o plano Hobby recusa quando o autor do commit não é e-mail da conta Vercel);
-`git archive HEAD | tar -x -C <dir>` já entrega a árvore limpa, faltando só copiar
-`.vercel/` por cima.
 
 ## Comandos
 
